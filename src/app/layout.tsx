@@ -6,7 +6,7 @@ import Navbar from "@/components/ui/Navbar";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Chess Platform — Real-time Chess",
+  title: "Chess",
   description: "Play, watch, and compete in real-time chess tournaments.",
 };
 

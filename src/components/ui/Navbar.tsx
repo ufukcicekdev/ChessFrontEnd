@@ -35,7 +35,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
           <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-gray-950 font-black text-lg shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform">♟</div>
-          <span className="font-bold text-lg tracking-tight">Chess<span className="text-amber-400">Pro</span></span>
+          <span className="font-bold text-lg tracking-tight">Chess</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-1">
@@ -52,7 +52,7 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-3">
           {user ? (
             <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-1.5">
+              <Link href="/profile" className="flex items-center gap-2 bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-1.5 hover:bg-white/[0.09] transition-colors">
                 <div className="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-xs font-bold text-amber-400">
                   {user.username[0].toUpperCase()}
                 </div>
@@ -63,7 +63,12 @@ export default function Navbar() {
                   </span>
                 )}
                 <span className="text-xs font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">{user.rating}</span>
-              </div>
+                {parseFloat(user.wallet_balance ?? "0") > 0 && (
+                  <span className="text-xs font-mono text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                    ${parseFloat(user.wallet_balance!).toFixed(2)}
+                  </span>
+                )}
+              </Link>
               <button onClick={logout} className="btn-ghost text-sm">Sign Out</button>
             </div>
           ) : (
@@ -95,7 +100,12 @@ export default function Navbar() {
           ))}
           <div className="border-t border-white/[0.06] pt-2 mt-1 flex flex-col gap-2">
             {user ? (
-              <button onClick={logout} className="btn-secondary w-full text-sm">Sign Out</button>
+              <>
+                <Link href="/profile" onClick={() => setMobileOpen(false)} className="btn-secondary w-full text-sm text-center">
+                  Profilim {parseFloat(user.wallet_balance ?? "0") > 0 && `· $${parseFloat(user.wallet_balance!).toFixed(2)}`}
+                </Link>
+                <button onClick={logout} className="btn-ghost w-full text-sm">Sign Out</button>
+              </>
             ) : (
               <>
                 <Link href="/auth/login"    onClick={() => setMobileOpen(false)} className="btn-secondary w-full text-sm text-center">Sign In</Link>

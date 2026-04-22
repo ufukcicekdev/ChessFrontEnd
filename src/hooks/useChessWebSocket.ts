@@ -2,6 +2,8 @@
 import { useEffect, useRef, useCallback, useState } from "react";
 import { WSMessage, GameStateMessage, GameResult } from "@/types";
 
+const ABANDON_GRACE = 60;
+
 const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected" | "error";
@@ -14,6 +16,7 @@ export interface ChessWSState {
   blackTime: number;
   isCheck: boolean;
   gameResult: GameResult | null;
+  gameOverReason: string | null;
   whitePlayer: string | null;
   blackPlayer: string | null;
   whiteRating: number | null;
@@ -22,6 +25,8 @@ export interface ChessWSState {
   blackTitle: string | null;
   connectionStatus: ConnectionStatus;
   drawOffer: { from: string } | null;
+  opponentDisconnected: boolean;
+  abandonCountdown: number | null;
 }
 
 export interface ChessWSActions {
@@ -41,6 +46,8 @@ export function useChessWebSocket(
   const ws = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
 
+  const countdownTimer = useRef<ReturnType<typeof setInterval>>();
+
   const [state, setState] = useState<ChessWSState>({
     fen: STARTING_FEN,
     pgn: "",
@@ -49,6 +56,7 @@ export function useChessWebSocket(
     blackTime: 600,
     isCheck: false,
     gameResult: null,
+    gameOverReason: null,
     whitePlayer: null,
     blackPlayer: null,
     whiteRating: null,
@@ -57,6 +65,8 @@ export function useChessWebSocket(
     blackTitle: null,
     connectionStatus: "connecting",
     drawOffer: null,
+    opponentDisconnected: false,
+    abandonCountdown: null,
   });
 
   const connect = useCallback(() => {
@@ -128,8 +138,32 @@ export function useChessWebSocket(
           blackPlayer: (msg as any).player === "black" ? (msg as any).username : s.blackPlayer,
         }));
         break;
+      case "player_left":
+        setState((s) => ({ ...s, opponentDisconnected: true, abandonCountdown: ABANDON_GRACE }));
+        clearInterval(countdownTimer.current);
+        countdownTimer.current = setInterval(() => {
+          setState((s) => {
+            if (s.abandonCountdown === null || s.abandonCountdown <= 1) {
+              clearInterval(countdownTimer.current);
+              return { ...s, abandonCountdown: null };
+            }
+            return { ...s, abandonCountdown: s.abandonCountdown - 1 };
+          });
+        }, 1000);
+        break;
+      case "player_reconnected":
+        clearInterval(countdownTimer.current);
+        setState((s) => ({ ...s, opponentDisconnected: false, abandonCountdown: null }));
+        break;
       case "game_over":
-        setState((s) => ({ ...s, gameResult: (msg as any).result }));
+        clearInterval(countdownTimer.current);
+        setState((s) => ({
+          ...s,
+          gameResult: (msg as any).result,
+          gameOverReason: (msg as any).reason ?? null,
+          opponentDisconnected: false,
+          abandonCountdown: null,
+        }));
         break;
       case "draw_offer":
         setState((s) => ({ ...s, drawOffer: { from: (msg as any).offered_by } }));
@@ -144,6 +178,7 @@ export function useChessWebSocket(
     connect();
     return () => {
       clearTimeout(reconnectTimer.current);
+      clearInterval(countdownTimer.current);
       ws.current?.close();
     };
   }, [connect]);

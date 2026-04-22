@@ -1,6 +1,7 @@
 export interface User {
   id: number;
   username: string;
+  email?: string;
   rating: number;
   title?: string;
   next_title?: string | null;
@@ -8,7 +9,20 @@ export interface User {
   games_played: number;
   games_won: number;
   games_drawn: number;
+  games_lost?: number;
   avatar?: string;
+  wallet_balance?: string;
+  iban?: string;
+  created_at?: string;
+}
+
+export interface WithdrawalRequest {
+  id: string;
+  amount: string;
+  iban_snapshot: string;
+  status: "pending" | "paid" | "rejected";
+  created_at: string;
+  processed_at: string | null;
 }
 
 export interface Move {
@@ -58,6 +72,7 @@ export type WSMessageType =
   | "game_state"
   | "player_joined"
   | "player_left"
+  | "player_reconnected"
   | "game_over"
   | "draw_offer"
   | "draw_result"

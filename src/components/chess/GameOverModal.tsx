@@ -6,6 +6,7 @@ import api from "@/lib/api";
 
 interface GameOverModalProps {
   result: GameResult;
+  reason?: string | null;
   currentUsername: string | null;
   whitePlayer: string | null;
   blackPlayer: string | null;
@@ -16,6 +17,7 @@ interface GameOverModalProps {
 
 export default function GameOverModal({
   result,
+  reason,
   currentUsername,
   whitePlayer,
   blackPlayer,
@@ -27,6 +29,13 @@ export default function GameOverModal({
     result === "draw" ? "Draw!"
     : result === "white" ? `${whitePlayer ?? "White"} wins!`
     : `${blackPlayer ?? "Black"} wins!`;
+
+  const reasonLabel =
+    reason === "abandonment" ? "Rakip oyunu terk etti"
+    : reason === "resignation" ? "Rakip istifa etti"
+    : reason === "timeout" ? "Süre doldu"
+    : result === "draw" ? "Beraberlik anlaşması"
+    : null;
 
   const isWinner =
     !isSpectator &&
@@ -69,8 +78,8 @@ export default function GameOverModal({
           {result === "draw" ? "🤝" : isSpectator ? "👁" : isWinner ? "🏆" : "😔"}
         </div>
         <h2 className="text-2xl font-bold">{headline}</h2>
-        <p className="text-gray-400 text-sm capitalize">
-          {result === "draw" ? "Game drawn by agreement" : `${result} wins`}
+        <p className="text-gray-400 text-sm">
+          {reasonLabel ?? (result === "draw" ? "Game drawn by agreement" : `${result} wins`)}
         </p>
         {profileLine && <p className="text-xs text-gray-500">{profileLine}</p>}
         <div className="flex flex-col gap-2">

@@ -236,11 +236,23 @@ export default function ChessGame({
         <MoveHistory pgn={ws.pgn} />
 
         {isSpectator && <DonateButton roomId={roomId} />}
+
+        {/* Opponent disconnect banner */}
+        {ws.opponentDisconnected && !ws.gameResult && (
+          <div className="card border-amber-500/40 bg-amber-500/10 text-center flex flex-col gap-1">
+            <p className="text-amber-400 text-xs font-semibold">Rakip bağlantısı kesildi</p>
+            {ws.abandonCountdown !== null && (
+              <p className="text-amber-300 text-lg font-black font-mono">{ws.abandonCountdown}s</p>
+            )}
+            <p className="text-gray-400 text-[10px]">Geri dönmezse kazanırsın</p>
+          </div>
+        )}
       </div>
 
       {ws.gameResult && ws.gameResult !== "ongoing" && (
         <GameOverModal
           result={ws.gameResult}
+          reason={ws.gameOverReason}
           currentUsername={currentUsername}
           whitePlayer={ws.whitePlayer}
           blackPlayer={ws.blackPlayer}
