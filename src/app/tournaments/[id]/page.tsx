@@ -42,8 +42,8 @@ export default function TournamentDetailPage() {
     }
   };
 
-  if (loading) return <div className="flex justify-center py-20 text-gray-400">Loading…</div>;
-  if (!tournament) return <div className="flex justify-center py-20 text-red-400">Not found.</div>;
+  if (loading) return <div className="flex justify-center pt-24 text-gray-400">Loading…</div>;
+  if (!tournament) return <div className="flex justify-center pt-24 text-red-400">Not found.</div>;
 
   const isCreator = user?.username === tournament.created_by?.username;
   const isParticipant = tournament.rounds.some((r) =>
@@ -53,7 +53,7 @@ export default function TournamentDetailPage() {
   );
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-10 flex flex-col gap-8">
+    <div className="max-w-5xl mx-auto px-4 pt-24 pb-16 flex flex-col gap-8">
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
           <h1 className="text-3xl font-bold">{tournament.name}</h1>

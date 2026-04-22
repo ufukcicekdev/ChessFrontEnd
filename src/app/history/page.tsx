@@ -35,15 +35,15 @@ export default function HistoryPage() {
   }, []);
 
   if (loading) {
-    return <div className="flex justify-center py-24 text-gray-400">Loading history…</div>;
+    return <div className="flex justify-center pt-24 text-gray-400">Loading history…</div>;
   }
 
   if (error) {
-    return <div className="flex justify-center py-24 text-red-400">{error}</div>;
+    return <div className="flex justify-center pt-24 text-red-400">{error}</div>;
   }
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-10">
+    <div className="max-w-3xl mx-auto px-4 pt-24 pb-16">
       <h1 className="text-2xl font-semibold mb-2">Recent games</h1>
       <p className="text-sm text-gray-500 mb-6">
         Finished games from the site. Open one to step through moves or autoplay like a broadcast.

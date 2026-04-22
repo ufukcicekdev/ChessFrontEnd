@@ -20,8 +20,8 @@ export default function RoomPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="flex justify-center py-20 text-gray-400">Loading…</div>;
-  if (!room) return <div className="flex justify-center py-20 text-red-400">Room not found.</div>;
+  if (loading) return <div className="flex justify-center pt-24 text-gray-400">Loading…</div>;
+  if (!room) return <div className="flex justify-center pt-24 text-red-400">Room not found.</div>;
 
   // Determine this user's color
   const playerColor =
@@ -32,7 +32,7 @@ export default function RoomPage() {
       : "spectator";
 
   return (
-    <div className="py-6">
+    <div className="pt-20 pb-8">
       <div className="text-center mb-4">
         <h1 className="text-xl font-semibold">{room.name || `Room ${room.id.slice(0, 8)}`}</h1>
         <p className="text-xs text-gray-500 mt-1 font-mono">{room.id}</p>

@@ -147,7 +147,7 @@ export default function GameReviewPage() {
   );
 
   if (loading) {
-    return <div className="flex justify-center py-24 text-gray-400">Loading game…</div>;
+    return <div className="flex justify-center pt-24 text-gray-400">Loading game…</div>;
   }
 
   if (error || !game) {
@@ -162,7 +162,7 @@ export default function GameReviewPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col lg:flex-row gap-6">
+    <div className="max-w-5xl mx-auto px-4 pt-24 pb-10 flex flex-col lg:flex-row gap-6">
       <div className="flex-1 flex flex-col gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500 mb-1">
