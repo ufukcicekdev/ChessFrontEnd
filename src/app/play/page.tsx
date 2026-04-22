@@ -6,6 +6,7 @@ import api from "@/lib/api";
 import { clsx } from "clsx";
 import { useToast } from "@/hooks/useToast";
 import ToastContainer from "@/components/ui/Toast";
+import LivePlatformStats from "@/components/LivePlatformStats";
 
 const TIME_PRESETS = [
   { label: "1+0",  sublabel: "Bullet",    time: 60,   inc: 0,  color: "text-red-400" },
@@ -118,6 +119,10 @@ export default function PlayPage() {
         <div className="text-center mb-2">
           <h1 className="text-4xl font-black mb-2">Create a <span className="gradient-text">Game</span></h1>
           <p className="text-gray-500 text-sm">Choose your time control and start playing</p>
+        </div>
+
+        <div className="flex justify-center -mt-1 mb-1">
+          <LivePlatformStats variant="compact" />
         </div>
 
         <div className="card">

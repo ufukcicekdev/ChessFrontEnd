@@ -44,6 +44,7 @@ export default function RoomPage() {
 
       <ChessGame
         roomId={id}
+        gameId={room.game?.id}
         token={token}
         playerColor={playerColor}
         currentUsername={user?.username ?? null}

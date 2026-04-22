@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Room } from "@/types";
 import api from "@/lib/api";
+import LivePlatformStats from "@/components/LivePlatformStats";
 
 export default function WatchPage() {
   const [rooms, setRooms] = useState<Room[]>([]);
@@ -22,7 +23,10 @@ export default function WatchPage() {
         <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
           <div>
             <h1 className="text-4xl font-black mb-1">Live <span className="gradient-text">Games</span></h1>
-            <p className="text-gray-500 text-sm">{rooms.length} active games · refreshes every 10s</p>
+            <p className="text-gray-500 text-sm">{rooms.length} in this list · refreshes every 10s</p>
+            <div className="mt-2">
+              <LivePlatformStats variant="compact" />
+            </div>
           </div>
           <div className="flex items-center gap-2 text-xs text-gray-600">
             <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
@@ -60,12 +64,30 @@ export default function WatchPage() {
                 <div className="flex items-center gap-2">
                   <div className="w-5 h-5 rounded-full bg-white border-2 border-white/30 shrink-0" />
                   <span className="text-sm font-semibold truncate">{room.game?.white_player?.username ?? "Waiting…"}</span>
-                  {room.game?.white_player && <span className="text-xs text-gray-500 ml-auto font-mono">{room.game.white_player.rating}</span>}
+                  {room.game?.white_player && (
+                    <div className="ml-auto flex items-center gap-2 shrink-0">
+                      {room.game.white_player.title && (
+                        <span className="text-[10px] font-semibold text-gray-200 bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 rounded">
+                          {room.game.white_player.title}
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-500 font-mono">{room.game.white_player.rating}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2 text-gray-400">
                   <div className="w-5 h-5 rounded-full bg-gray-800 border-2 border-white/10 shrink-0" />
                   <span className="text-sm font-semibold truncate">{room.game?.black_player?.username ?? "Waiting…"}</span>
-                  {room.game?.black_player && <span className="text-xs text-gray-500 ml-auto font-mono">{room.game.black_player.rating}</span>}
+                  {room.game?.black_player && (
+                    <div className="ml-auto flex items-center gap-2 shrink-0">
+                      {room.game.black_player.title && (
+                        <span className="text-[10px] font-semibold text-gray-200 bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 rounded">
+                          {room.game.black_player.title}
+                        </span>
+                      )}
+                      <span className="text-xs text-gray-500 font-mono">{room.game.black_player.rating}</span>
+                    </div>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs text-gray-600 border-t border-white/[0.06] pt-3">

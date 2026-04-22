@@ -1,11 +1,5 @@
 import Link from "next/link";
-
-const STATS = [
-  { value: "12,400+", label: "Active Players" },
-  { value: "3.2M+",   label: "Games Played" },
-  { value: "850+",    label: "Daily Tournaments" },
-  { value: "<50ms",   label: "Move Latency" },
-];
+import LivePlatformStats from "@/components/LivePlatformStats";
 
 const FEATURES = [
   { icon: "⚡", title: "Real-time Play",       desc: "Instant move sync via WebSockets. Your opponent's move appears in milliseconds.",        color: "from-amber-500/20 to-orange-500/5",  border: "border-amber-500/20" },
@@ -66,16 +60,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Stats */}
+      {/* Live stats from API */}
       <section className="px-4 py-12">
-        <div className="max-w-4xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-4">
-          {STATS.map((s) => (
-            <div key={s.label} className="card text-center">
-              <div className="text-2xl sm:text-3xl font-black gradient-text mb-1">{s.value}</div>
-              <div className="text-xs text-gray-500 font-medium">{s.label}</div>
-            </div>
-          ))}
-        </div>
+        <LivePlatformStats variant="hero" />
       </section>
 
       {/* Features */}

@@ -9,6 +9,7 @@ const NAV_LINKS = [
   { href: "/play",        label: "Play" },
   { href: "/train",       label: "Train" },
   { href: "/watch",       label: "Watch" },
+  { href: "/history",     label: "History" },
   { href: "/tournaments", label: "Tournaments" },
   { href: "/leaderboard", label: "Leaderboard" },
 ];
@@ -56,6 +57,11 @@ export default function Navbar() {
                   {user.username[0].toUpperCase()}
                 </div>
                 <span className="text-sm font-medium">{user.username}</span>
+                {user.title && (
+                  <span className="text-[10px] font-semibold text-gray-200 bg-white/[0.06] border border-white/[0.08] px-1.5 py-0.5 rounded">
+                    {user.title}
+                  </span>
+                )}
                 <span className="text-xs font-mono text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">{user.rating}</span>
               </div>
               <button onClick={logout} className="btn-ghost text-sm">Sign Out</button>

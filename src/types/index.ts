@@ -2,6 +2,9 @@ export interface User {
   id: number;
   username: string;
   rating: number;
+  title?: string;
+  next_title?: string | null;
+  rating_to_next_title?: number | null;
   games_played: number;
   games_won: number;
   games_drawn: number;
@@ -22,6 +25,7 @@ export type RoomStatus = "waiting" | "active" | "finished" | "abandoned";
 
 export interface Game {
   id: string;
+  room_id?: string;
   white_player: User | null;
   black_player: User | null;
   fen: string;
@@ -29,6 +33,8 @@ export interface Game {
   result: GameResult;
   white_time_remaining: number;
   black_time_remaining: number;
+  time_control?: number;
+  increment?: number;
   started_at: string | null;
   ended_at: string | null;
   moves: Move[];
@@ -70,6 +76,10 @@ export interface GameStateMessage extends WSMessage {
   move_number: number;
   white_time: number;
   black_time: number;
+  white_rating?: number | null;
+  black_rating?: number | null;
+  white_title?: string | null;
+  black_title?: string | null;
   is_check?: boolean;
   is_game_over: boolean;
   game_result?: GameResult;

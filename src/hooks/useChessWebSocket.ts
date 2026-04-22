@@ -16,6 +16,10 @@ export interface ChessWSState {
   gameResult: GameResult | null;
   whitePlayer: string | null;
   blackPlayer: string | null;
+  whiteRating: number | null;
+  blackRating: number | null;
+  whiteTitle: string | null;
+  blackTitle: string | null;
   connectionStatus: ConnectionStatus;
   drawOffer: { from: string } | null;
 }
@@ -47,6 +51,10 @@ export function useChessWebSocket(
     gameResult: null,
     whitePlayer: null,
     blackPlayer: null,
+    whiteRating: null,
+    blackRating: null,
+    whiteTitle: null,
+    blackTitle: null,
     connectionStatus: "connecting",
     drawOffer: null,
   });
@@ -106,6 +114,10 @@ export function useChessWebSocket(
           gameResult: m.is_game_over ? (m.game_result ?? null) : null,
           whitePlayer: m.white_player ?? s.whitePlayer,
           blackPlayer: m.black_player ?? s.blackPlayer,
+          whiteRating: m.white_rating ?? s.whiteRating,
+          blackRating: m.black_rating ?? s.blackRating,
+          whiteTitle: m.white_title ?? s.whiteTitle,
+          blackTitle: m.black_title ?? s.blackTitle,
         }));
         break;
       }

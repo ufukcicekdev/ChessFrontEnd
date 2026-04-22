@@ -13,6 +13,7 @@ import DonateButton from "./DonateButton";
 
 interface ChessGameProps {
   roomId: string;
+  gameId?: string | null;
   token: string | null;
   playerColor: GameColor | "spectator";
   currentUsername: string | null;
@@ -20,6 +21,7 @@ interface ChessGameProps {
 
 export default function ChessGame({
   roomId,
+  gameId,
   token,
   playerColor,
   currentUsername,
@@ -158,6 +160,8 @@ export default function ChessGame({
       <div className="flex flex-col gap-2 flex-1">
         <PlayerCard
           username={ws.blackPlayer ?? "Waiting…"}
+          title={ws.blackTitle}
+          rating={ws.blackRating}
           time={formatTime(blackTime)}
           isActive={activeSide === "black"}
           isTop
@@ -185,6 +189,8 @@ export default function ChessGame({
 
         <PlayerCard
           username={ws.whitePlayer ?? "Waiting…"}
+          title={ws.whiteTitle}
+          rating={ws.whiteRating}
           time={formatTime(whiteTime)}
           isActive={activeSide === "white"}
         />
@@ -239,6 +245,7 @@ export default function ChessGame({
           whitePlayer={ws.whitePlayer}
           blackPlayer={ws.blackPlayer}
           roomId={roomId}
+          gameId={gameId}
           isSpectator={isSpectator}
         />
       )}
