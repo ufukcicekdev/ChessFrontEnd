@@ -239,6 +239,7 @@ export default function ChessGame({
           whitePlayer={ws.whitePlayer}
           blackPlayer={ws.blackPlayer}
           roomId={roomId}
+          isSpectator={isSpectator}
         />
       )}
     </div>
