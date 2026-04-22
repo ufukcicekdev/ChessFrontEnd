@@ -31,10 +31,10 @@ export default function GameOverModal({
     : `${blackPlayer ?? "Black"} wins!`;
 
   const reasonLabel =
-    reason === "abandonment" ? "Rakip oyunu terk etti"
-    : reason === "resignation" ? "Rakip istifa etti"
-    : reason === "timeout" ? "Süre doldu"
-    : result === "draw" ? "Beraberlik anlaşması"
+    reason === "abandonment" ? "Opponent abandoned the game"
+    : reason === "resignation" ? "Opponent resigned"
+    : reason === "timeout" ? "Time out"
+    : result === "draw" ? "Draw by agreement"
     : null;
 
   const isWinner =

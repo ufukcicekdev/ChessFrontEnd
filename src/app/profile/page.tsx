@@ -8,9 +8,9 @@ import { useToast } from "@/hooks/useToast";
 import ToastContainer from "@/components/ui/Toast";
 
 const STATUS_LABEL: Record<string, string> = {
-  pending: "Beklemede",
-  paid: "Ödendi",
-  rejected: "Reddedildi",
+  pending: "Pending",
+  paid: "Paid",
+  rejected: "Rejected",
 };
 const STATUS_COLOR: Record<string, string> = {
   pending: "text-amber-400 bg-amber-500/10 border-amber-500/30",
@@ -48,9 +48,9 @@ export default function ProfilePage() {
     try {
       await api.patch("/api/users/profile/", { iban });
       await fetchProfile();
-      add("IBAN kaydedildi.", "success");
+      add("IBAN saved.", "success");
     } catch {
-      add("IBAN kaydedilemedi.", "error");
+      add("Failed to save IBAN.", "error");
     } finally {
       setIbanSaving(false);
     }
@@ -65,9 +65,9 @@ export default function ProfilePage() {
       const r = await api.get("/api/users/withdrawals/");
       setWithdrawals(r.data);
       setWithdrawAmount("");
-      add("Çekim talebiniz oluşturuldu.", "success");
+      add("Withdrawal request created.", "success");
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Çekim talebi oluşturulamadı.";
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to create withdrawal request.";
       add(msg, "error");
     } finally {
       setWithdrawLoading(false);
@@ -110,9 +110,9 @@ export default function ProfilePage() {
           {/* İstatistikler */}
           <div className="grid grid-cols-3 gap-3">
             {[
-              { label: "Oyun", value: user.games_played },
-              { label: "Kazanma", value: `${winRate}%` },
-              { label: "Beraberlik", value: user.games_drawn },
+              { label: "Games", value: user.games_played },
+              { label: "Win Rate", value: `${winRate}%` },
+              { label: "Draws", value: user.games_drawn },
             ].map((s) => (
               <div key={s.label} className="card text-center">
                 <p className="text-2xl font-black font-mono text-white">{s.value}</p>
@@ -121,12 +121,12 @@ export default function ProfilePage() {
             ))}
           </div>
 
-          {/* Cüzdan */}
+          {/* Wallet */}
           <div className="card flex flex-col gap-4">
             <div className="flex items-center justify-between">
-              <h2 className="font-semibold text-base">Cüzdan</h2>
+              <h2 className="font-semibold text-base">Wallet</h2>
               <div className="flex items-center gap-2">
-                <span className="text-xs text-gray-500">Kullanılabilir bakiye</span>
+                <span className="text-xs text-gray-500">Available balance</span>
                 <span className="text-lg font-black font-mono text-emerald-400">
                   ${balance.toFixed(2)}
                 </span>
@@ -135,7 +135,7 @@ export default function ProfilePage() {
 
             {/* IBAN */}
             <div className="flex flex-col gap-2">
-              <label className="text-xs text-gray-400 font-medium">IBAN (çekim için)</label>
+              <label className="text-xs text-gray-400 font-medium">IBAN (for withdrawals)</label>
               <div className="flex gap-2">
                 <input
                   type="text"
@@ -150,17 +150,17 @@ export default function ProfilePage() {
                   disabled={ibanSaving}
                   className="btn-secondary text-sm px-4"
                 >
-                  {ibanSaving ? "…" : "Kaydet"}
+                  {ibanSaving ? "…" : "Save"}
                 </button>
               </div>
               {!user.iban && (
-                <p className="text-xs text-amber-400/80">Çekim yapabilmek için IBAN girmeniz gerekiyor.</p>
+                <p className="text-xs text-amber-400/80">Add your IBAN to enable withdrawals.</p>
               )}
             </div>
 
-            {/* Çekim talebi */}
+            {/* Withdrawal request */}
             <div className="border-t border-white/[0.06] pt-4 flex flex-col gap-2">
-              <label className="text-xs text-gray-400 font-medium">Çekim talebi oluştur</label>
+              <label className="text-xs text-gray-400 font-medium">Request a withdrawal</label>
               <div className="flex gap-2">
                 <div className="relative flex-1">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
@@ -179,22 +179,22 @@ export default function ProfilePage() {
                   disabled={withdrawLoading || !user.iban || balance <= 0}
                   className="btn-primary text-sm px-4"
                 >
-                  {withdrawLoading ? "…" : "Talep Et"}
+                  {withdrawLoading ? "…" : "Withdraw"}
                 </button>
               </div>
               {balance <= 0 && (
-                <p className="text-xs text-gray-500">Çekilebilir bakiyeniz yok.</p>
+                <p className="text-xs text-gray-500">No balance available to withdraw.</p>
               )}
             </div>
           </div>
 
-          {/* Çekim geçmişi */}
+          {/* Withdrawal history */}
           <div className="card flex flex-col gap-3">
-            <h2 className="font-semibold text-base">Çekim Geçmişi</h2>
+            <h2 className="font-semibold text-base">Withdrawal History</h2>
             {withdrawalsLoading ? (
-              <p className="text-sm text-gray-500">Yükleniyor…</p>
+              <p className="text-sm text-gray-500">Loading…</p>
             ) : withdrawals.length === 0 ? (
-              <p className="text-sm text-gray-500">Henüz çekim talebiniz yok.</p>
+              <p className="text-sm text-gray-500">No withdrawal requests yet.</p>
             ) : (
               <div className="flex flex-col gap-2">
                 {withdrawals.map((w) => (

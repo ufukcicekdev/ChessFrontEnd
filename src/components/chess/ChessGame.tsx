@@ -240,11 +240,11 @@ export default function ChessGame({
         {/* Opponent disconnect banner */}
         {ws.opponentDisconnected && !ws.gameResult && (
           <div className="card border-amber-500/40 bg-amber-500/10 text-center flex flex-col gap-1">
-            <p className="text-amber-400 text-xs font-semibold">Rakip bağlantısı kesildi</p>
+            <p className="text-amber-400 text-xs font-semibold">Opponent disconnected</p>
             {ws.abandonCountdown !== null && (
               <p className="text-amber-300 text-lg font-black font-mono">{ws.abandonCountdown}s</p>
             )}
-            <p className="text-gray-400 text-[10px]">Geri dönmezse kazanırsın</p>
+            <p className="text-gray-400 text-[10px]">You win if they don't return</p>
           </div>
         )}
       </div>

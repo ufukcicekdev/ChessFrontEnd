@@ -102,7 +102,7 @@ export default function Navbar() {
             {user ? (
               <>
                 <Link href="/profile" onClick={() => setMobileOpen(false)} className="btn-secondary w-full text-sm text-center">
-                  Profilim {parseFloat(user.wallet_balance ?? "0") > 0 && `· $${parseFloat(user.wallet_balance!).toFixed(2)}`}
+                  Profile {parseFloat(user.wallet_balance ?? "0") > 0 && `· $${parseFloat(user.wallet_balance!).toFixed(2)}`}
                 </Link>
                 <button onClick={logout} className="btn-ghost w-full text-sm">Sign Out</button>
               </>
