@@ -1,0 +1,150 @@
+"use client";
+import { useEffect, useRef, useCallback, useState } from "react";
+import { WSMessage, GameStateMessage, GameResult } from "@/types";
+
+const STARTING_FEN = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+
+export type ConnectionStatus = "connecting" | "connected" | "disconnected" | "error";
+
+export interface ChessWSState {
+  fen: string;
+  pgn: string;
+  lastMove: { from: string; to: string } | null;
+  whiteTime: number;
+  blackTime: number;
+  gameResult: GameResult | null;
+  whitePlayer: string | null;
+  blackPlayer: string | null;
+  connectionStatus: ConnectionStatus;
+  drawOffer: { from: string } | null;
+}
+
+export interface ChessWSActions {
+  sendMove: (uci: string, san: string, fenAfter: string) => void;
+  sendJoin: () => void;
+  sendResign: () => void;
+  offerDraw: () => void;
+  acceptDraw: () => void;
+  declineDraw: () => void;
+}
+
+export function useChessWebSocket(
+  roomId: string,
+  token: string | null
+): ChessWSState & ChessWSActions {
+  const ws = useRef<WebSocket | null>(null);
+  const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  const [state, setState] = useState<ChessWSState>({
+    fen: STARTING_FEN,
+    pgn: "",
+    lastMove: null,
+    whiteTime: 600,
+    blackTime: 600,
+    gameResult: null,
+    whitePlayer: null,
+    blackPlayer: null,
+    connectionStatus: "connecting",
+    drawOffer: null,
+  });
+
+  const connect = useCallback(() => {
+    const wsBase = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
+    const url = token
+      ? `${wsBase}/ws/chess/${roomId}/?token=${token}`
+      : `${wsBase}/ws/chess/${roomId}/`;
+
+    const socket = new WebSocket(url);
+    ws.current = socket;
+
+    socket.onopen = () => {
+      setState((s) => ({ ...s, connectionStatus: "connected" }));
+      // Auto-join as player if we have a token
+      if (token) {
+        socket.send(JSON.stringify({ type: "join" }));
+      }
+    };
+
+    socket.onmessage = (event) => {
+      const msg: WSMessage = JSON.parse(event.data);
+      handleMessage(msg);
+    };
+
+    socket.onerror = () => {
+      setState((s) => ({ ...s, connectionStatus: "error" }));
+    };
+
+    socket.onclose = () => {
+      setState((s) => ({ ...s, connectionStatus: "disconnected" }));
+      // Reconnect after 3 s unless game is over
+      setState((prev) => {
+        if (!prev.gameResult) {
+          reconnectTimer.current = setTimeout(connect, 3000);
+        }
+        return prev;
+      });
+    };
+  }, [roomId, token]);
+
+  const handleMessage = (msg: WSMessage) => {
+    switch (msg.type) {
+      case "game_state": {
+        const m = msg as GameStateMessage;
+        const uci = m.last_move?.uci;
+        const lastMove = uci ? { from: uci.slice(0, 2), to: uci.slice(2, 4) } : null;
+        setState((s) => ({
+          ...s,
+          fen: m.fen,
+          pgn: m.pgn,
+          lastMove,
+          whiteTime: m.white_time,
+          blackTime: m.black_time,
+          gameResult: m.is_game_over ? (m.game_result ?? null) : null,
+          whitePlayer: m.white_player ?? s.whitePlayer,
+          blackPlayer: m.black_player ?? s.blackPlayer,
+        }));
+        break;
+      }
+      case "player_joined":
+        setState((s) => ({
+          ...s,
+          whitePlayer: (msg as any).player === "white" ? (msg as any).username : s.whitePlayer,
+          blackPlayer: (msg as any).player === "black" ? (msg as any).username : s.blackPlayer,
+        }));
+        break;
+      case "game_over":
+        setState((s) => ({ ...s, gameResult: (msg as any).result }));
+        break;
+      case "draw_offer":
+        setState((s) => ({ ...s, drawOffer: { from: (msg as any).offered_by } }));
+        break;
+      case "draw_result":
+        setState((s) => ({ ...s, drawOffer: null }));
+        break;
+    }
+  };
+
+  useEffect(() => {
+    connect();
+    return () => {
+      clearTimeout(reconnectTimer.current);
+      ws.current?.close();
+    };
+  }, [connect]);
+
+  const send = (data: object) => {
+    if (ws.current?.readyState === WebSocket.OPEN) {
+      ws.current.send(JSON.stringify(data));
+    }
+  };
+
+  return {
+    ...state,
+    sendMove: (uci, san, fen) => send({ type: "move", uci, san, fen }),
+    sendJoin: () => send({ type: "join" }),
+    sendResign: () => send({ type: "resign" }),
+    offerDraw: () => send({ type: "draw_offer" }),
+    acceptDraw: () => send({ type: "draw_accept" }),
+    declineDraw: () => send({ type: "draw_decline" }),
+  };
+}
