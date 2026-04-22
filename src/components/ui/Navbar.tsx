@@ -7,6 +7,7 @@ import { clsx } from "clsx";
 
 const NAV_LINKS = [
   { href: "/play",        label: "Play" },
+  { href: "/train",       label: "Train" },
   { href: "/watch",       label: "Watch" },
   { href: "/tournaments", label: "Tournaments" },
   { href: "/leaderboard", label: "Leaderboard" },
