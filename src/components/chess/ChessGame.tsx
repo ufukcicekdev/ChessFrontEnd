@@ -24,9 +24,18 @@ export default function ChessGame({
   playerColor,
   currentUsername,
 }: ChessGameProps) {
-  const isSpectator = playerColor === "spectator";
+  // Always connect with token if available.
+  // Room REST data can be stale (e.g. players not assigned yet), so we derive role from WS state.
+  const ws = useChessWebSocket(roomId, token);
 
-  const ws = useChessWebSocket(roomId, isSpectator ? null : token);
+  const effectiveColor = useMemo<GameColor | "spectator">(() => {
+    if (!currentUsername) return playerColor;
+    if (ws.whitePlayer === currentUsername) return "white";
+    if (ws.blackPlayer === currentUsername) return "black";
+    return playerColor;
+  }, [currentUsername, playerColor, ws.whitePlayer, ws.blackPlayer]);
+
+  const isSpectator = effectiveColor === "spectator";
 
   // Determine whose turn it is from FEN
   const activeSide = useMemo<GameColor | null>(() => {
@@ -44,8 +53,8 @@ export default function ChessGame({
 
   const isMyTurn =
     !isSpectator &&
-    ((playerColor === "white" && activeSide === "white") ||
-      (playerColor === "black" && activeSide === "black"));
+    ((effectiveColor === "white" && activeSide === "white") ||
+      (effectiveColor === "black" && activeSide === "black"));
 
   const onDrop = useCallback(
     (sourceSquare: Square, targetSquare: Square) => {
@@ -91,7 +100,7 @@ export default function ChessGame({
     };
   }, [ws.lastMove]);
 
-  const boardOrientation = playerColor === "black" ? "black" : "white";
+  const boardOrientation = effectiveColor === "black" ? "black" : "white";
 
   return (
     <div className="flex flex-col lg:flex-row gap-4 w-full max-w-5xl mx-auto p-4">
@@ -149,7 +158,7 @@ export default function ChessGame({
         </div>
 
         {/* Draw offer banner */}
-        {ws.drawOffer && !isSpectator && ws.drawOffer.from !== playerColor && (
+        {ws.drawOffer && !isSpectator && ws.drawOffer.from !== effectiveColor && (
           <DrawOfferBanner
             onAccept={ws.acceptDraw}
             onDecline={ws.declineDraw}
