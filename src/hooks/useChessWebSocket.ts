@@ -22,6 +22,7 @@ export interface ChessWSState {
 export interface ChessWSActions {
   sendMove: (uci: string, san: string, fenAfter: string) => void;
   sendJoin: () => void;
+  sendTimeLoss: (loser: "white" | "black") => void;
   sendResign: () => void;
   offerDraw: () => void;
   acceptDraw: () => void;
@@ -142,6 +143,7 @@ export function useChessWebSocket(
     ...state,
     sendMove: (uci, san, fen) => send({ type: "move", uci, san, fen }),
     sendJoin: () => send({ type: "join" }),
+    sendTimeLoss: (loser) => send({ type: "time_loss", loser }),
     sendResign: () => send({ type: "resign" }),
     offerDraw: () => send({ type: "draw_offer" }),
     acceptDraw: () => send({ type: "draw_accept" }),

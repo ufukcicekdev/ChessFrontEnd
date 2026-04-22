@@ -70,6 +70,7 @@ export interface GameStateMessage extends WSMessage {
   move_number: number;
   white_time: number;
   black_time: number;
+  is_check?: boolean;
   is_game_over: boolean;
   game_result?: GameResult;
   white_player?: string;

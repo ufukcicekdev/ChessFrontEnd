@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 import { GameColor } from "@/types";
@@ -53,6 +53,26 @@ export default function ChessGame({
     ws.blackTime,
     activeSide
   );
+
+  const timeLossSentRef = useRef(false);
+  useEffect(() => {
+    timeLossSentRef.current = false;
+  }, [roomId, ws.gameResult]);
+
+  useEffect(() => {
+    if (isSpectator) return;
+    if (ws.gameResult) return;
+    if (!activeSide) return;
+    if (timeLossSentRef.current) return;
+
+    if (activeSide === "white" && whiteTime <= 0) {
+      timeLossSentRef.current = true;
+      ws.sendTimeLoss("white");
+    } else if (activeSide === "black" && blackTime <= 0) {
+      timeLossSentRef.current = true;
+      ws.sendTimeLoss("black");
+    }
+  }, [activeSide, blackTime, isSpectator, whiteTime, ws]);
 
   const [optionSquares, setOptionSquares] = useState<Record<string, object>>({});
 
