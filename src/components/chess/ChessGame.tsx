@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 import { GameColor } from "@/types";
@@ -37,11 +37,16 @@ export default function ChessGame({
 
   const isSpectator = effectiveColor === "spectator";
 
+  const [localFen, setLocalFen] = useState(ws.fen);
+  useEffect(() => {
+    setLocalFen(ws.fen);
+  }, [ws.fen]);
+
   // Determine whose turn it is from FEN
   const activeSide = useMemo<GameColor | null>(() => {
     if (ws.gameResult) return null;
-    return ws.fen.split(" ")[1] === "w" ? "white" : "black";
-  }, [ws.fen, ws.gameResult]);
+    return localFen.split(" ")[1] === "w" ? "white" : "black";
+  }, [localFen, ws.gameResult]);
 
   const { whiteTime, blackTime, formatTime } = useClock(
     ws.whiteTime,
@@ -60,23 +65,24 @@ export default function ChessGame({
     (sourceSquare: Square, targetSquare: Square) => {
       if (!isMyTurn) return false;
       try {
-        const game = new Chess(ws.fen);
+        const game = new Chess(localFen);
         const move = game.move({ from: sourceSquare, to: targetSquare, promotion: "q" });
         if (!move) return false;
         ws.sendMove(move.from + move.to + (move.promotion ?? ""), move.san, game.fen());
+        setLocalFen(game.fen()); // optimistic update; server will reconcile via ws.fen
         setOptionSquares({});
         return true;
       } catch {
         return false;
       }
     },
-    [isMyTurn, ws]
+    [isMyTurn, localFen, ws]
   );
 
   const onSquareClick = useCallback(
     (square: Square) => {
       if (!isMyTurn) return;
-      const game = new Chess(ws.fen);
+      const game = new Chess(localFen);
       const moves = game.moves({ square, verbose: true });
       const highlights: Record<string, object> = {};
       moves.forEach((m) => {
@@ -89,7 +95,7 @@ export default function ChessGame({
       });
       setOptionSquares(highlights);
     },
-    [isMyTurn, ws.fen]
+    [isMyTurn, localFen]
   );
 
   const lastMoveHighlight = useMemo(() => {
@@ -116,7 +122,7 @@ export default function ChessGame({
         <div className="relative">
           <Chessboard
             id={`board-${roomId}`}
-            position={ws.fen}
+            position={localFen}
             onPieceDrop={onDrop}
             onSquareClick={onSquareClick}
             boardOrientation={boardOrientation}

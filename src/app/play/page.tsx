@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/api";
@@ -27,6 +27,8 @@ export default function PlayPage() {
   const [roomName, setRoomName] = useState("");
   const [loading, setLoading] = useState(false);
   const [joinId, setJoinId] = useState("");
+  const [searching, setSearching] = useState(false);
+  const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const createRoom = async () => {
     if (!user) { router.push("/auth/login"); return; }
@@ -47,10 +49,67 @@ export default function PlayPage() {
     }
   };
 
+  const stopPolling = () => {
+    if (pollTimer.current) clearInterval(pollTimer.current);
+    pollTimer.current = null;
+  };
+
+  const startMatchmaking = async () => {
+    if (!user) { router.push("/auth/login"); return; }
+    const preset = TIME_PRESETS[selected];
+    setSearching(true);
+    try {
+      const { data } = await api.post("/api/chess/matchmaking/join/", {
+        time_control: preset.time,
+        increment: preset.inc,
+      });
+      if (data.status === "matched" && data.room_id) {
+        stopPolling();
+        router.push(`/room/${data.room_id}`);
+        return;
+      }
+      stopPolling();
+      pollTimer.current = setInterval(async () => {
+        try {
+          const res = await api.get("/api/chess/matchmaking/status/", {
+            params: { time_control: preset.time, increment: preset.inc },
+          });
+          if (res.data.status === "matched" && res.data.room_id) {
+            stopPolling();
+            router.push(`/room/${res.data.room_id}`);
+          }
+        } catch {
+          // keep polling
+        }
+      }, 1500);
+    } catch {
+      add("Matchmaking failed. Check backend Redis config.", "error");
+      setSearching(false);
+    }
+  };
+
+  const cancelMatchmaking = async () => {
+    const preset = TIME_PRESETS[selected];
+    stopPolling();
+    setSearching(false);
+    try {
+      await api.post("/api/chess/matchmaking/leave/", {
+        time_control: preset.time,
+        increment: preset.inc,
+      });
+    } catch {
+      // ignore
+    }
+  };
+
   const joinRoom = () => {
     if (!joinId.trim()) { add("Please enter a room ID.", "error"); return; }
     router.push(`/room/${joinId.trim()}`);
   };
+
+  useEffect(() => {
+    return () => stopPolling();
+  }, []);
 
   return (
     <div className="min-h-screen bg-hero pt-24 pb-16 px-4">
@@ -104,17 +163,25 @@ export default function PlayPage() {
           </label>
         </div>
 
-        <button onClick={createRoom} disabled={loading} className="btn-primary w-full py-4 text-base">
-          {loading ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-              </svg>
-              Creating…
-            </span>
-          ) : "Start Game →"}
-        </button>
+        {!searching ? (
+          <div className="flex flex-col gap-3">
+            <button onClick={startMatchmaking} className="btn-primary w-full py-4 text-base">
+              Find Match →
+            </button>
+            <button onClick={createRoom} disabled={loading} className="btn-secondary w-full py-3 text-sm">
+              {loading ? "Creating room…" : "Create Room (link) →"}
+            </button>
+          </div>
+        ) : (
+          <div className="card flex items-center justify-between">
+            <div className="text-sm text-gray-300">
+              Searching for an opponent… <span className="text-gray-500">(same time control)</span>
+            </div>
+            <button onClick={cancelMatchmaking} className="btn-danger px-4 py-2 text-sm">
+              Cancel
+            </button>
+          </div>
+        )}
 
         <div className="flex items-center gap-4">
           <div className="flex-1 border-t border-white/[0.06]" />
