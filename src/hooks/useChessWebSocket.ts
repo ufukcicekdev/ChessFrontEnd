@@ -12,6 +12,7 @@ export interface ChessWSState {
   lastMove: { from: string; to: string } | null;
   whiteTime: number;
   blackTime: number;
+  isCheck: boolean;
   gameResult: GameResult | null;
   whitePlayer: string | null;
   blackPlayer: string | null;
@@ -42,6 +43,7 @@ export function useChessWebSocket(
     lastMove: null,
     whiteTime: 600,
     blackTime: 600,
+    isCheck: false,
     gameResult: null,
     whitePlayer: null,
     blackPlayer: null,
@@ -100,6 +102,7 @@ export function useChessWebSocket(
           lastMove,
           whiteTime: m.white_time,
           blackTime: m.black_time,
+          isCheck: Boolean(m.is_check),
           gameResult: m.is_game_over ? (m.game_result ?? null) : null,
           whitePlayer: m.white_player ?? s.whitePlayer,
           blackPlayer: m.black_player ?? s.blackPlayer,

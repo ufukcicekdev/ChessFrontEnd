@@ -126,6 +126,30 @@ export default function ChessGame({
     };
   }, [ws.lastMove]);
 
+  const checkHighlight = useMemo(() => {
+    if (!ws.isCheck) return {};
+    if (!activeSide) return {};
+    try {
+      const game = new Chess(localFen);
+      const kingSquare = game
+        .board()
+        .flatMap((row, r) =>
+          row.map((piece, f) => ({ piece, square: `${"abcdefgh"[f]}${8 - r}` }))
+        )
+        .find(
+          ({ piece }) =>
+            piece?.type === "k" &&
+            piece?.color === (activeSide === "white" ? "w" : "b")
+        )?.square;
+
+      return kingSquare
+        ? { [kingSquare]: { background: "rgba(239,68,68,0.55)" } }
+        : {};
+    } catch {
+      return {};
+    }
+  }, [activeSide, localFen, ws.isCheck]);
+
   const boardOrientation = effectiveColor === "black" ? "black" : "white";
 
   return (
@@ -146,7 +170,7 @@ export default function ChessGame({
             onPieceDrop={onDrop}
             onSquareClick={onSquareClick}
             boardOrientation={boardOrientation}
-            customSquareStyles={{ ...lastMoveHighlight, ...optionSquares }}
+            customSquareStyles={{ ...lastMoveHighlight, ...checkHighlight, ...optionSquares }}
             arePiecesDraggable={isMyTurn}
             customDarkSquareStyle={{ backgroundColor: "#b58863" }}
             customLightSquareStyle={{ backgroundColor: "#f0d9b5" }}
