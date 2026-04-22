@@ -98,7 +98,11 @@ export default function ProfilePage() {
   if (!user) return null;
 
   const balance = parseFloat(user.wallet_balance ?? "0");
-  const winRate = user.games_played > 0 ? Math.round((user.games_won / user.games_played) * 100) : 0;
+  const gamesPlayed = user.games_played ?? 0;
+  const gamesWon = user.games_won ?? 0;
+  const gamesDrawn = user.games_drawn ?? 0;
+  const gamesLost = gamesPlayed - gamesWon - gamesDrawn;
+  const winRate = gamesPlayed > 0 ? Math.round((gamesWon / gamesPlayed) * 100) : 0;
 
   return (
     <>
@@ -129,17 +133,60 @@ export default function ProfilePage() {
           </div>
 
           {/* İstatistikler */}
-          <div className="grid grid-cols-3 gap-3">
-            {[
-              { label: "Games", value: user.games_played },
-              { label: "Win Rate", value: `${winRate}%` },
-              { label: "Draws", value: user.games_drawn },
-            ].map((s) => (
-              <div key={s.label} className="card text-center">
-                <p className="text-2xl font-black font-mono text-white">{s.value}</p>
-                <p className="text-xs text-gray-500 mt-1">{s.label}</p>
+          <div className="card flex flex-col gap-4">
+            {/* W / D / L sayılar */}
+            <div className="grid grid-cols-4 gap-3 text-center">
+              <div>
+                <p className="text-2xl font-black font-mono">{gamesPlayed}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Games</p>
               </div>
-            ))}
+              <div>
+                <p className="text-2xl font-black font-mono text-emerald-400">{gamesWon}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Wins</p>
+              </div>
+              <div>
+                <p className="text-2xl font-black font-mono text-gray-400">{gamesDrawn}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Draws</p>
+              </div>
+              <div>
+                <p className="text-2xl font-black font-mono text-red-400">{gamesLost}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Losses</p>
+              </div>
+            </div>
+
+            {/* Win rate bar */}
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-gray-500 w-14 shrink-0">Win rate</span>
+              <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${winRate}%` }} />
+              </div>
+              <span className="text-xs font-mono text-amber-400 w-8 text-right">{winRate}%</span>
+            </div>
+
+            {/* Next title progress */}
+            {user.next_title && typeof user.rating_to_next_title === "number" && (
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-gray-500 w-14 shrink-0">Next title</span>
+                <div className="flex-1 h-2 bg-white/[0.06] rounded-full overflow-hidden">
+                  {(() => {
+                    const thresholds: [number, string][] = [
+                      [2600,"Super Grandmaster"],[2500,"Grandmaster"],[2400,"International Master"],
+                      [2300,"FIDE Master"],[2200,"Candidate Master"],[2000,"Expert"],
+                      [1800,"Class A"],[1600,"Class B"],[1400,"Class C"],[1200,"Class D"],[1000,"Novice"],[0,"Beginner"],
+                    ];
+                    const nextIdx = thresholds.findIndex(([,n]) => n === user.next_title);
+                    const nextMin = nextIdx >= 0 ? thresholds[nextIdx][0] : user.rating;
+                    const prevMin = nextIdx + 1 < thresholds.length ? thresholds[nextIdx + 1][0] : 0;
+                    const pct = Math.min(100, Math.round(((user.rating - prevMin) / (nextMin - prevMin)) * 100));
+                    return <div className="h-full bg-violet-500 rounded-full" style={{ width: `${pct}%` }} />;
+                  })()}
+                </div>
+                <span className="text-xs text-violet-400 text-right leading-tight">
+                  {user.next_title}<br/>
+                  <span className="text-gray-600">{user.rating_to_next_title} pts away</span>
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Wallet */}
