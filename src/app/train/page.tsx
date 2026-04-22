@@ -190,7 +190,8 @@ export default function TrainPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-start">
           <div className="lg:col-span-2">
-            <div className="card p-3">
+            {/* backdrop-blur olmayan wrapper — blur CSS filter drag koordinatlarını bozuyor */}
+            <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-3">
               <Chessboard
                 id="train-board"
                 position={fen}

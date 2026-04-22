@@ -45,6 +45,7 @@ export function useChessWebSocket(
 ): ChessWSState & ChessWSActions {
   const ws = useRef<WebSocket | null>(null);
   const reconnectTimer = useRef<ReturnType<typeof setTimeout>>();
+  const reconnectAttempts = useRef(0);
 
   const countdownTimer = useRef<ReturnType<typeof setInterval>>();
 
@@ -79,8 +80,8 @@ export function useChessWebSocket(
     ws.current = socket;
 
     socket.onopen = () => {
+      reconnectAttempts.current = 0;
       setState((s) => ({ ...s, connectionStatus: "connected" }));
-      // Auto-join as player if we have a token
       if (token) {
         socket.send(JSON.stringify({ type: "join" }));
       }
@@ -97,10 +98,12 @@ export function useChessWebSocket(
 
     socket.onclose = () => {
       setState((s) => ({ ...s, connectionStatus: "disconnected" }));
-      // Reconnect after 3 s unless game is over
       setState((prev) => {
         if (!prev.gameResult) {
-          reconnectTimer.current = setTimeout(connect, 3000);
+          // Exponential backoff: 1s, 2s, 4s, 8s, max 30s
+          const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 30000);
+          reconnectAttempts.current += 1;
+          reconnectTimer.current = setTimeout(connect, delay);
         }
         return prev;
       });

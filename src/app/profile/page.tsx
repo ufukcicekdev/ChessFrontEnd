@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import { WithdrawalRequest } from "@/types";
+import { User, WithdrawalRequest } from "@/types";
 import api from "@/lib/api";
 import { useToast } from "@/hooks/useToast";
 import ToastContainer from "@/components/ui/Toast";
@@ -19,9 +19,13 @@ const STATUS_COLOR: Record<string, string> = {
 };
 
 export default function ProfilePage() {
-  const { user, fetchProfile } = useAuthStore();
+  const { user: storeUser, fetchProfile } = useAuthStore();
   const router = useRouter();
   const { toasts, add, remove } = useToast();
+
+  // Taze profil verisi — store'a güvenmiyoruz, her zaman API'den çekiyoruz
+  const [profile, setProfile] = useState<User | null>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
 
   const [iban, setIban] = useState("");
   const [ibanSaving, setIbanSaving] = useState(false);
@@ -33,15 +37,27 @@ export default function ProfilePage() {
   const [withdrawalsLoading, setWithdrawalsLoading] = useState(true);
 
   useEffect(() => {
-    fetchProfile();
-  }, [fetchProfile]);
+    // Auth kontrolü için store'u kullan
+    if (storeUser === null && !localStorage.getItem("access_token")) {
+      router.push("/auth/login");
+      return;
+    }
+    // Her zaman taze veri çek
+    api.get("/api/users/profile/")
+      .then((r) => {
+        setProfile(r.data);
+        setIban(r.data.iban ?? "");
+        fetchProfile(); // store'u da güncelle
+      })
+      .catch(() => router.push("/auth/login"))
+      .finally(() => setProfileLoading(false));
 
-  useEffect(() => {
-    if (user === null) return;
-    if (!user) { router.push("/auth/login"); return; }
-    setIban(user.iban ?? "");
-    api.get("/api/users/withdrawals/").then((r) => setWithdrawals(r.data)).finally(() => setWithdrawalsLoading(false));
-  }, [user, router]);
+    api.get("/api/users/withdrawals/")
+      .then((r) => setWithdrawals(r.data))
+      .finally(() => setWithdrawalsLoading(false));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const user = profile;
 
   const saveIban = async () => {
     setIbanSaving(true);
@@ -74,6 +90,11 @@ export default function ProfilePage() {
     }
   };
 
+  if (profileLoading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-gray-500 text-sm">Loading…</div>
+    </div>
+  );
   if (!user) return null;
 
   const balance = parseFloat(user.wallet_balance ?? "0");

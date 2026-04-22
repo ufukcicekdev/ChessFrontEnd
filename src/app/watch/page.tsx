@@ -91,7 +91,7 @@ export default function WatchPage() {
                 </div>
               </div>
               <div className="flex items-center justify-between text-xs text-gray-600 border-t border-white/[0.06] pt-3">
-                <span>{room.game?.moves?.length ?? 0} moves</span>
+                <span>{(room.game as any)?.move_count ?? 0} moves</span>
                 <span className="group-hover:text-amber-400 transition-colors font-medium">Watch →</span>
               </div>
             </Link>
