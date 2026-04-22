@@ -12,7 +12,7 @@ interface MovePair {
 }
 
 export default function MoveHistory({ pgn }: MoveHistoryProps) {
-  const endRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const pairs = useMemo<MovePair[]>(() => {
     if (!pgn) return [];
@@ -38,11 +38,14 @@ export default function MoveHistory({ pgn }: MoveHistoryProps) {
   }, [pgn]);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [pairs]);
+    const el = containerRef.current;
+    if (!el) return;
+    // Keep scroll inside the moves panel; avoid scrolling the whole page on mobile.
+    el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [pgn]);
 
   return (
-    <div className="card flex flex-col gap-1 max-h-64 overflow-y-auto">
+    <div ref={containerRef} className="card flex flex-col gap-1 max-h-64 overflow-y-auto overscroll-contain">
       <p className="text-xs text-gray-500 uppercase tracking-wide mb-1">Moves</p>
       {pairs.length === 0 && <p className="text-xs text-gray-600 italic">No moves yet</p>}
       {pairs.map((p) => (
@@ -52,7 +55,6 @@ export default function MoveHistory({ pgn }: MoveHistoryProps) {
           <span className="w-14 font-mono text-gray-400">{p.black}</span>
         </div>
       ))}
-      <div ref={endRef} />
     </div>
   );
 }

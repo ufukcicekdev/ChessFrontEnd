@@ -185,7 +185,7 @@ export default function ChessGame({
 
         <MoveHistory pgn={ws.pgn} />
 
-        <DonateButton roomId={roomId} />
+        {isSpectator && <DonateButton roomId={roomId} />}
       </div>
 
       {ws.gameResult && ws.gameResult !== "ongoing" && (
