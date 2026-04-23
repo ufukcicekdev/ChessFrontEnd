@@ -77,6 +77,7 @@ export default function ChessGame({
   }, [activeSide, blackTime, isSpectator, whiteTime, ws]);
 
   const [optionSquares, setOptionSquares] = useState<Record<string, object>>({});
+  const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
 
   const isMyTurn =
     !isSpectator &&
@@ -91,8 +92,9 @@ export default function ChessGame({
         const move = game.move({ from: sourceSquare, to: targetSquare, promotion: "q" });
         if (!move) return false;
         ws.sendMove(move.from + move.to + (move.promotion ?? ""), move.san, game.fen());
-        setLocalFen(game.fen()); // optimistic update; server will reconcile via ws.fen
+        setLocalFen(game.fen());
         setOptionSquares({});
+        setSelectedSquare(null);
         return true;
       } catch {
         return false;
@@ -105,19 +107,42 @@ export default function ChessGame({
     (square: Square) => {
       if (!isMyTurn) return;
       const game = new Chess(localFen);
+
+      // Eğer bir taş seçiliyse ve hedef kareye tıklandıysa hamle yap
+      if (selectedSquare) {
+        const move = game.move({ from: selectedSquare, to: square, promotion: "q" });
+        if (move) {
+          ws.sendMove(move.from + move.to + (move.promotion ?? ""), move.san, game.fen());
+          setLocalFen(game.fen());
+          setOptionSquares({});
+          setSelectedSquare(null);
+          return;
+        }
+        // Geçersiz hedef — yeni taş seçmeye çalışıyor olabilir, devam et
+      }
+
+      // Taş seç ve gidebileceği yerleri göster
       const moves = game.moves({ square, verbose: true });
-      const highlights: Record<string, object> = {};
+      if (moves.length === 0) {
+        setOptionSquares({});
+        setSelectedSquare(null);
+        return;
+      }
+
+      const highlights: Record<string, object> = {
+        [square]: { background: "rgba(255,255,0,0.4)" }, // seçili taş
+      };
       moves.forEach((m) => {
         highlights[m.to] = {
-          background:
-            game.get(m.to)
-              ? "radial-gradient(circle, rgba(255,0,0,0.4) 85%, transparent 85%)"
-              : "radial-gradient(circle, rgba(0,0,0,0.15) 25%, transparent 25%)",
+          background: game.get(m.to)
+            ? "radial-gradient(circle, rgba(255,0,0,0.4) 85%, transparent 85%)"
+            : "radial-gradient(circle, rgba(0,0,0,0.15) 25%, transparent 25%)",
         };
       });
       setOptionSquares(highlights);
+      setSelectedSquare(square);
     },
-    [isMyTurn, localFen]
+    [isMyTurn, localFen, selectedSquare, ws]
   );
 
   const lastMoveHighlight = useMemo(() => {
