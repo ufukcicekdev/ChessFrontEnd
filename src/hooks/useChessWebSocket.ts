@@ -111,11 +111,13 @@ export function useChessWebSocket(
     socket.onclose = () => {
       setState((s) => ({ ...s, connectionStatus: "disconnected" }));
       setState((prev) => {
-        if (!prev.gameResult) {
-          // Exponential backoff: 1s, 2s, 4s, 8s, max 30s
+        if (!prev.gameResult && reconnectAttempts.current < 10) {
+          // Exponential backoff: 1s, 2s, 4s … max 30s, up to 10 attempts
           const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 30000);
           reconnectAttempts.current += 1;
           reconnectTimer.current = setTimeout(connect, delay);
+        } else if (reconnectAttempts.current >= 10) {
+          setState((s) => ({ ...s, connectionStatus: "error" }));
         }
         return prev;
       });

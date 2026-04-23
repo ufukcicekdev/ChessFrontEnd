@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess, Move, Square } from "chess.js";
 import { clsx } from "clsx";
+import { useChessSound } from "@/hooks/useChessSound";
 
 type Difficulty = "easy" | "medium" | "hard";
 
@@ -61,7 +62,9 @@ function pickEngineMove(game: Chess, difficulty: Difficulty): Move {
 }
 
 export default function TrainPage() {
+  const { play } = useChessSound();
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [playerColor, setPlayerColor] = useState<"white" | "black">("white");
   const [game, setGame] = useState(() => new Chess());
   const [orientation, setOrientation] = useState<"white" | "black">("white");
   const [status, setStatus] = useState<string>("You are White. Make a move.");
@@ -70,15 +73,48 @@ export default function TrainPage() {
   const pendingPromoRef = useRef<{ from: Square; to: Square } | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [optionSquares, setOptionSquares] = useState<Record<string, object>>({});
+  const prevPgnRef = useRef("");
 
   const fen = game.fen();
 
-  const reset = useCallback(() => {
+  const engineColor = playerColor === "white" ? "b" : "w";
+
+  const runEngine = useCallback(
+    (g: Chess, diff: Difficulty) => {
+      setBusy(true);
+      setStatus("Engine is thinking…");
+      window.setTimeout(() => {
+        try {
+          const eg = new Chess(g.fen());
+          const move = pickEngineMove(eg, diff);
+          eg.move(move);
+          const pgn = eg.pgn();
+          const last = pgn.trim().split(/\s+/).pop() ?? "";
+          if (last.includes("+") || last.includes("#")) play("check");
+          else if (last.includes("x")) play("capture");
+          else play("move");
+          setGame(eg);
+          setStatus(eg.isGameOver() ? "Game over" : "Your move");
+        } catch { setStatus("Engine failed to move"); }
+        finally { setBusy(false); }
+      }, 250);
+    },
+    [play],
+  );
+
+  const reset = useCallback((color: "white" | "black" = playerColor) => {
     const g = new Chess();
     setGame(g);
     setBusy(false);
-    setStatus("New game. You are White. Make a move.");
-  }, []);
+    prevPgnRef.current = "";
+    setSelectedSquare(null);
+    setOptionSquares({});
+    setStatus(`You are ${color === "white" ? "White" : "Black"}. Make a move.`);
+    if (color === "black") {
+      // engine plays first as white
+      window.setTimeout(() => runEngine(g, difficulty), 300);
+    }
+  }, [difficulty, playerColor, runEngine]);
 
   const headline = useMemo(() => {
     if (game.isCheckmate()) {
@@ -102,36 +138,32 @@ export default function TrainPage() {
 
   const commitTrainMove = useCallback(
     (from: Square, to: Square, promo: "q" | "r" | "b" | "n" = "q") => {
-      if (headline || busy || game.turn() !== "w") return false;
+      if (headline || busy || game.turn() !== playerColor[0]) return false;
       try {
         const next = new Chess(game.fen());
         const move = next.move({ from, to, promotion: promo });
         if (!move) return false;
+        // play sound for player move
+        const san = move.san;
+        if (san.includes("+") || san.includes("#")) play("check");
+        else if (san.includes("x")) play("capture");
+        else play("move");
         setGame(next);
+        setSelectedSquare(null);
+        setOptionSquares({});
         if (next.isGameOver()) { setStatus("Game over"); return true; }
-        setBusy(true);
-        setStatus("Engine is thinking…");
-        window.setTimeout(() => {
-          try {
-            const engineGame = new Chess(next.fen());
-            const engineMove = pickEngineMove(engineGame, difficulty);
-            engineGame.move(engineMove);
-            setGame(engineGame);
-            setStatus(engineGame.isGameOver() ? "Game over" : "Your move");
-          } catch { setStatus("Engine failed to move"); }
-          finally { setBusy(false); }
-        }, 250);
+        runEngine(next, difficulty);
         return true;
       } catch { return false; }
     },
-    [busy, difficulty, game, headline],
+    [busy, difficulty, game, headline, play, playerColor, runEngine],
   );
 
   const onDrop = useCallback(
     (sourceSquare: Square, targetSquare: Square) => {
       if (headline) return false;
       if (busy) return false;
-      if (game.turn() !== "w") return false;
+      if (game.turn() !== playerColor[0]) return false;
 
       if (isPromo(sourceSquare, targetSquare)) {
         pendingPromoRef.current = { from: sourceSquare, to: targetSquare };
@@ -140,10 +172,10 @@ export default function TrainPage() {
       }
       return commitTrainMove(sourceSquare, targetSquare);
     },
-    [busy, commitTrainMove, game, headline, isPromo],
+    [busy, commitTrainMove, game, headline, isPromo, playerColor],
   );
 
-  const canMove = !headline && !busy && game.turn() === "w";
+  const canMove = !headline && !busy && game.turn() === playerColor[0];
 
   const onSquareClick = useCallback(
     (square: Square) => {
@@ -199,42 +231,49 @@ export default function TrainPage() {
           <p className="text-gray-500 text-sm">Offline practice (no account required)</p>
         </div>
 
-        <div className="card flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
-          <div className="flex flex-col gap-2">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Difficulty</p>
-            <div className="flex flex-wrap gap-2">
-              {(
-                [
-                  { id: "easy" as const, label: "Easy" },
-                  { id: "medium" as const, label: "Medium" },
-                  { id: "hard" as const, label: "Hard" },
-                ]
-              ).map((d) => (
-                <button
-                  key={d.id}
-                  onClick={() => {
-                    setDifficulty(d.id);
-                    reset();
-                  }}
-                  className={clsx(
-                    "px-4 py-2 rounded-xl text-sm font-semibold border transition-colors",
-                    difficulty === d.id
-                      ? "bg-amber-500/15 border-amber-500/40 text-amber-400"
-                      : "border-white/[0.08] text-gray-300 hover:bg-white/[0.04]"
-                  )}
-                >
-                  {d.label}
-                </button>
-              ))}
+        <div className="card flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Difficulty</p>
+              <div className="flex flex-wrap gap-2">
+                {([{ id: "easy" as const, label: "Easy" }, { id: "medium" as const, label: "Medium" }, { id: "hard" as const, label: "Hard" }]).map((d) => (
+                  <button key={d.id}
+                    onClick={() => { setDifficulty(d.id); reset(playerColor); }}
+                    className={clsx("px-4 py-2 rounded-xl text-sm font-semibold border transition-colors",
+                      difficulty === d.id ? "bg-amber-500/15 border-amber-500/40 text-amber-400" : "border-white/[0.08] text-gray-300 hover:bg-white/[0.04]"
+                    )}>
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Play as</p>
+              <div className="flex gap-2">
+                {([{ color: "white" as const, label: "♔ White" }, { color: "black" as const, label: "♚ Black" }]).map((opt) => (
+                  <button key={opt.color}
+                    onClick={() => {
+                      setPlayerColor(opt.color);
+                      setOrientation(opt.color);
+                      reset(opt.color);
+                    }}
+                    className={clsx("px-4 py-2 rounded-xl text-sm font-semibold border transition-colors",
+                      playerColor === opt.color ? "bg-amber-500/15 border-amber-500/40 text-amber-400" : "border-white/[0.08] text-gray-300 hover:bg-white/[0.04]"
+                    )}>
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-2 justify-end">
             <button onClick={() => setOrientation((o) => (o === "white" ? "black" : "white"))} className="btn-secondary text-sm">
               Flip board
             </button>
-            <button onClick={reset} className="btn-primary text-sm">
-              Reset
+            <button onClick={() => reset(playerColor)} className="btn-primary text-sm" type="button">
+              New Game
             </button>
           </div>
         </div>
@@ -285,7 +324,7 @@ export default function TrainPage() {
               <h2 className="text-2xl font-bold">{headline}</h2>
               <p className="text-gray-400 text-sm">{status}</p>
               <div className="flex gap-3 justify-center">
-                <button onClick={reset} className="btn-primary w-full">
+                <button onClick={() => reset(playerColor)} className="btn-primary w-full">
                   Play again
                 </button>
               </div>

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { User } from "@/types";
 import api from "@/lib/api";
@@ -188,6 +188,7 @@ export default function LeaderboardPage() {
     challenge_max_wager: "100.00",
   });
   const { user } = useAuthStore();
+  const searchParams = useSearchParams();
 
   useEffect(() => {
     setLoading(true);
@@ -198,6 +199,19 @@ export default function LeaderboardPage() {
   useEffect(() => {
     api.get("/api/chess/features/").then(({ data }) => setFeatures(data)).catch(() => {});
   }, []);
+
+  // Auto-open challenge modal when navigated from profile page with ?challenge=username
+  useEffect(() => {
+    const challengeUser = searchParams.get("challenge");
+    if (!challengeUser || !user) return;
+    api.get(`/api/users/leaderboard/?q=${encodeURIComponent(challengeUser)}`)
+      .then(({ data }) => {
+        const list: User[] = data.results ?? data;
+        const target = list.find((p) => p.username === challengeUser);
+        if (target) setChallengeTarget(target);
+      })
+      .catch(() => {});
+  }, [searchParams, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="min-h-screen bg-hero pt-24 pb-16 px-4">

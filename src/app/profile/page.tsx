@@ -169,23 +169,29 @@ export default function ProfilePage() {
                 )}
               </div>
               <p className="text-gray-400 text-sm mt-0.5">{user.email}</p>
-              <div className="flex items-center gap-2 mt-2">
-                <input
-                  type="text"
-                  value={newUsername}
-                  onChange={(e) => setNewUsername(e.target.value)}
-                  placeholder="New username…"
-                  className="input text-xs py-1.5 px-2 w-36"
-                  onKeyDown={(e) => e.key === "Enter" && saveUsername()}
-                />
-                <button
-                  onClick={saveUsername}
-                  disabled={usernameSaving || !newUsername.trim()}
-                  className="btn-secondary text-xs px-3 py-1.5"
-                >
-                  {usernameSaving ? "…" : "Change"}
-                </button>
-              </div>
+              {(user as unknown as { username_cooldown_days?: number }).username_cooldown_days ? (
+                <p className="text-xs text-amber-400/80 mt-2">
+                  Username can be changed in {(user as unknown as { username_cooldown_days: number }).username_cooldown_days} day(s).
+                </p>
+              ) : (
+                <div className="flex items-center gap-2 mt-2">
+                  <input
+                    type="text"
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    placeholder="New username…"
+                    className="input text-xs py-1.5 px-2 w-36"
+                    onKeyDown={(e) => e.key === "Enter" && saveUsername()}
+                  />
+                  <button
+                    onClick={saveUsername}
+                    disabled={usernameSaving || !newUsername.trim()}
+                    className="btn-secondary text-xs px-3 py-1.5"
+                  >
+                    {usernameSaving ? "…" : "Change"}
+                  </button>
+                </div>
+              )}
             </div>
             <div className="flex flex-col items-end gap-2 shrink-0">
               <div className="text-right">

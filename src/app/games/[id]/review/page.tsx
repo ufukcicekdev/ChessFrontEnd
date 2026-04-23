@@ -98,6 +98,19 @@ export default function GameReviewPage() {
   const stepFwd = useCallback(() => setPlyIndex((p) => Math.min(maxPly, p + 1)), [maxPly]);
 
   useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if (e.key === "ArrowLeft")  { e.preventDefault(); stepBack(); }
+      if (e.key === "ArrowRight") { e.preventDefault(); stepFwd(); }
+      if (e.key === "ArrowUp")    { e.preventDefault(); goStart(); }
+      if (e.key === "ArrowDown")  { e.preventDefault(); goEnd(); }
+      if (e.key === " ")          { e.preventDefault(); setPlaying((p) => !p); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [stepBack, stepFwd, goStart, goEnd]);
+
+  useEffect(() => {
     if (!playing) return;
     if (maxPly === 0) {
       setPlaying(false);
@@ -231,8 +244,9 @@ export default function GameReviewPage() {
           </button>
         </div>
 
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-500 flex flex-wrap gap-x-3">
           Position {plyIndex} / {maxPly} ply
+          <span className="text-gray-600">· ← → navigate · Space play/pause</span>
           {game.room_id && (
             <>
               {" "}
