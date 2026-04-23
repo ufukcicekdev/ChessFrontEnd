@@ -46,7 +46,7 @@ export default function ProfilePage() {
     api.get("/api/users/profile/")
       .then((r) => {
         setProfile(r.data);
-        setIban(r.data.iban ?? "");
+        setIban("");
         fetchProfile(); // store'u da güncelle
       })
       .catch(() => router.push("/auth/login"))
@@ -204,12 +204,17 @@ export default function ProfilePage() {
             {/* IBAN */}
             <div className="flex flex-col gap-2">
               <label className="text-xs text-gray-400 font-medium">IBAN (for withdrawals)</label>
+              {user.masked_iban && (
+                <p className="text-sm font-mono text-gray-300 bg-white/[0.04] rounded-lg px-3 py-2">
+                  {user.masked_iban}
+                </p>
+              )}
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={iban}
                   onChange={(e) => setIban(e.target.value.toUpperCase().replace(/\s/g, ""))}
-                  placeholder="TR000000000000000000000000"
+                  placeholder={user.masked_iban ? "Enter new IBAN to update" : "TR000000000000000000000000"}
                   maxLength={34}
                   className="input flex-1 text-sm font-mono py-2"
                 />
@@ -221,7 +226,7 @@ export default function ProfilePage() {
                   {ibanSaving ? "…" : "Save"}
                 </button>
               </div>
-              {!user.iban && (
+              {!user.masked_iban && (
                 <p className="text-xs text-amber-400/80">Add your IBAN to enable withdrawals.</p>
               )}
             </div>
@@ -244,7 +249,7 @@ export default function ProfilePage() {
                 </div>
                 <button
                   onClick={requestWithdrawal}
-                  disabled={withdrawLoading || !user.iban || balance <= 0}
+                  disabled={withdrawLoading || !user.masked_iban || balance <= 0}
                   className="btn-primary text-sm px-4"
                 >
                   {withdrawLoading ? "…" : "Withdraw"}

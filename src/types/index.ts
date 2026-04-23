@@ -13,6 +13,7 @@ export interface User {
   avatar?: string;
   wallet_balance?: string;
   iban?: string;
+  masked_iban?: string;
   created_at?: string;
 }
 

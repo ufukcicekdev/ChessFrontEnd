@@ -70,13 +70,29 @@ export function useChessWebSocket(
     abandonCountdown: null,
   });
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     const wsBase = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
-    const url = token
-      ? `${wsBase}/ws/chess/${roomId}/?token=${token}`
-      : `${wsBase}/ws/chess/${roomId}/`;
+    const apiBase = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-    const socket = new WebSocket(url);
+    let wsUrl = `${wsBase}/ws/chess/${roomId}/`;
+    if (token) {
+      try {
+        const res = await fetch(`${apiBase}/api/chess/ws-ticket/`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const { ticket } = await res.json();
+          wsUrl = `${wsBase}/ws/chess/${roomId}/?ticket=${ticket}`;
+        } else {
+          wsUrl = `${wsBase}/ws/chess/${roomId}/?token=${token}`;
+        }
+      } catch {
+        wsUrl = `${wsBase}/ws/chess/${roomId}/?token=${token}`;
+      }
+    }
+
+    const socket = new WebSocket(wsUrl);
     ws.current = socket;
 
     socket.onopen = () => {
