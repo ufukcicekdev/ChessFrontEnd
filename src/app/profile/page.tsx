@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
 import { User, WithdrawalRequest } from "@/types";
 import api from "@/lib/api";
@@ -35,6 +36,7 @@ export default function ProfilePage() {
 
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
   const [withdrawalsLoading, setWithdrawalsLoading] = useState(true);
+  const [rank, setRank] = useState<{ rank: number; total: number } | null>(null);
 
   useEffect(() => {
     // Auth kontrolü için store'u kullan
@@ -55,6 +57,10 @@ export default function ProfilePage() {
     api.get("/api/users/withdrawals/")
       .then((r) => setWithdrawals(r.data))
       .finally(() => setWithdrawalsLoading(false));
+
+    api.get("/api/users/leaderboard/my-rank/")
+      .then((r) => setRank(r.data))
+      .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const user = profile;
@@ -126,10 +132,35 @@ export default function ProfilePage() {
               </div>
               <p className="text-gray-400 text-sm mt-0.5">{user.email}</p>
             </div>
-            <div className="text-right shrink-0">
-              <p className="text-2xl font-black font-mono text-amber-400">{user.rating}</p>
-              <p className="text-xs text-gray-500">Rating</p>
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              <div className="text-right">
+                <p className="text-2xl font-black font-mono text-amber-400">{user.rating}</p>
+                <p className="text-xs text-gray-500">Rating</p>
+              </div>
+              {rank && (
+                <div className="text-right">
+                  <p className="text-sm font-bold font-mono text-gray-300">
+                    #{rank.rank}
+                    <span className="text-gray-600 text-xs font-normal"> / {rank.total}</span>
+                  </p>
+                  <p className="text-xs text-gray-500">Global rank</p>
+                </div>
+              )}
             </div>
+          </div>
+
+          {/* Hızlı linkler */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { href: "/challenges", label: "⚔ Challenges", sub: "Challenge history" },
+              { href: "/history",    label: "♟ Games",      sub: "Recent games"     },
+              { href: "/leaderboard",label: "🏆 Leaderboard",sub: "Top players"     },
+            ].map((item) => (
+              <Link key={item.href} href={item.href} className="card-hover flex flex-col gap-0.5 px-4 py-3">
+                <span className="text-sm font-semibold">{item.label}</span>
+                <span className="text-xs text-gray-500">{item.sub}</span>
+              </Link>
+            ))}
           </div>
 
           {/* İstatistikler */}

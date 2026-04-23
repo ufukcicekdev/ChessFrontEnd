@@ -178,6 +178,7 @@ function ChallengeModal({ target, onClose, features }: ChallengeModalProps) {
 export default function LeaderboardPage() {
   const [players, setPlayers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
   const [challengeTarget, setChallengeTarget] = useState<User | null>(null);
   const [features, setFeatures] = useState<PlatformFeatures>({
     paid_challenges_enabled: false,
@@ -188,19 +189,37 @@ export default function LeaderboardPage() {
   const { user } = useAuthStore();
 
   useEffect(() => {
-    api.get("/api/users/leaderboard/").then(({ data }) => setPlayers(data.results ?? data)).finally(() => setLoading(false));
+    setLoading(true);
+    const params = search ? `?q=${encodeURIComponent(search)}` : "";
+    api.get(`/api/users/leaderboard/${params}`).then(({ data }) => setPlayers(data.results ?? data)).finally(() => setLoading(false));
+  }, [search]);
+
+  useEffect(() => {
     api.get("/api/chess/features/").then(({ data }) => setFeatures(data)).catch(() => {});
   }, []);
 
   return (
     <div className="min-h-screen bg-hero pt-24 pb-16 px-4">
       <div className="max-w-3xl mx-auto">
-        <div className="text-center mb-10">
+        <div className="text-center mb-8">
           <h1 className="text-4xl font-black mb-2"><span className="gradient-text">Leaderboard</span></h1>
-          <p className="text-gray-500 text-sm">Top players ranked by Elo rating</p>
+          <p className="text-gray-500 text-sm mb-6">Top players ranked by Elo rating</p>
+          <div className="relative max-w-sm mx-auto">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">🔍</span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search by username…"
+              className="w-full bg-white/[0.05] border border-white/10 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-amber-500/50 placeholder-gray-600"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 text-lg leading-none">×</button>
+            )}
+          </div>
         </div>
 
-        {!loading && players.length >= 3 && (
+        {!loading && !search && players.length >= 3 && (
           <div className="grid grid-cols-3 gap-3 mb-8">
             {[players[1], players[0], players[2]].map((p, idx) => {
               const rank = idx === 1 ? 0 : idx === 0 ? 1 : 2;

@@ -20,7 +20,7 @@ export interface SentChallenge {
   challenged_rating: number | null;
   time_control: number;
   increment: number;
-  status: "pending" | "accepted" | "declined";
+  status: "pending" | "accepted" | "declined" | "expired";
   room_id: string | null;
   wager_amount: string | null;
   created_at: string;
