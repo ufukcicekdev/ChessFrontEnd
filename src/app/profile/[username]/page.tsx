@@ -5,6 +5,17 @@ import Link from "next/link";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 
+interface GameSummary {
+  id: string;
+  white_player: { username: string } | null;
+  black_player: { username: string } | null;
+  result: string;
+  time_control: number | null;
+  increment: number | null;
+  ended_at: string | null;
+  move_count: number;
+}
+
 interface PublicUser {
   id: number;
   username: string;
@@ -24,12 +35,16 @@ export default function PublicProfilePage() {
   const [profile, setProfile] = useState<PublicUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [games, setGames] = useState<GameSummary[]>([]);
 
   useEffect(() => {
     api.get(`/api/users/profile/${username}/`)
       .then(({ data }) => setProfile(data))
       .catch((e) => { if (e?.response?.status === 404) setNotFound(true); })
       .finally(() => setLoading(false));
+    api.get(`/api/chess/history/${username}/`)
+      .then(({ data }) => setGames((data.results ?? data).slice(0, 5)))
+      .catch(() => {});
   }, [username]);
 
   if (loading) return <div className="flex justify-center pt-32 text-gray-500">Loading…</div>;
@@ -105,6 +120,42 @@ export default function PublicProfilePage() {
             <span className="text-xs font-mono text-amber-400 w-8 text-right">{winRate}%</span>
           </div>
         </div>
+
+        {/* Son oyunlar */}
+        {games.length > 0 && (
+          <div className="card flex flex-col gap-3">
+            <h2 className="text-sm font-semibold text-gray-300">Recent Games</h2>
+            <div className="flex flex-col gap-2">
+              {games.map((g) => {
+                const isWhite = g.white_player?.username === username;
+                const opponent = isWhite ? g.black_player?.username : g.white_player?.username;
+                const myResult =
+                  g.result === "draw" ? "draw"
+                  : (isWhite && g.result === "white") || (!isWhite && g.result === "black") ? "win"
+                  : "loss";
+                const resultColor = myResult === "win" ? "text-emerald-400" : myResult === "loss" ? "text-red-400" : "text-gray-400";
+                const resultLabel = myResult === "win" ? "Win" : myResult === "loss" ? "Loss" : "Draw";
+                const tc = g.time_control ? `${g.time_control / 60}+${g.increment ?? 0}` : null;
+                return (
+                  <div key={g.id} className="flex items-center justify-between gap-3 bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2.5">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">vs {opponent ?? "?"}</p>
+                      <p className="text-xs text-gray-500 mt-0.5 flex gap-2">
+                        {tc && <span>{tc} min</span>}
+                        <span>{g.move_count} moves</span>
+                        {g.ended_at && <span>{new Date(g.ended_at).toLocaleDateString()}</span>}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-xs font-bold ${resultColor}`}>{resultLabel}</span>
+                      <Link href={`/games/${g.id}/review`} className="btn-secondary text-xs px-2 py-1">Replay</Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Aksiyonlar */}
         <div className="flex gap-3 flex-wrap">

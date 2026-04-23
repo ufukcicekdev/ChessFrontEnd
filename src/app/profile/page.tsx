@@ -40,6 +40,16 @@ export default function ProfilePage() {
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
   const [withdrawalsLoading, setWithdrawalsLoading] = useState(true);
   const [rank, setRank] = useState<{ rank: number; total: number } | null>(null);
+  const [recentGames, setRecentGames] = useState<Array<{
+    id: string;
+    white_player: { username: string } | null;
+    black_player: { username: string } | null;
+    result: string;
+    time_control: number | null;
+    increment: number | null;
+    ended_at: string | null;
+    move_count: number;
+  }>>([]);
 
   useEffect(() => {
     // Auth kontrolü için store'u kullan
@@ -65,6 +75,13 @@ export default function ProfilePage() {
       .then((r) => setRank(r.data))
       .catch(() => {});
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!storeUser?.username) return;
+    api.get(`/api/chess/history/${storeUser.username}/`)
+      .then((r) => setRecentGames((r.data.results ?? r.data).slice(0, 5)))
+      .catch(() => {});
+  }, [storeUser?.username]);
 
   const user = profile;
 
@@ -257,6 +274,44 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
+
+          {/* Son oyunlar */}
+          {recentGames.length > 0 && (
+            <div className="card flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <h2 className="font-semibold text-base">Recent Games</h2>
+                <Link href="/history" className="text-xs text-amber-400 hover:underline">All games →</Link>
+              </div>
+              <div className="flex flex-col gap-2">
+                {recentGames.map((g) => {
+                  const isWhite = g.white_player?.username === user.username;
+                  const opponent = isWhite ? g.black_player?.username : g.white_player?.username;
+                  const myResult =
+                    g.result === "draw" ? "draw"
+                    : (isWhite && g.result === "white") || (!isWhite && g.result === "black") ? "win"
+                    : "loss";
+                  const rc = myResult === "win" ? "text-emerald-400" : myResult === "loss" ? "text-red-400" : "text-gray-400";
+                  const tc = g.time_control ? `${g.time_control / 60}+${g.increment ?? 0}` : null;
+                  return (
+                    <div key={g.id} className="flex items-center justify-between gap-3 bg-white/[0.03] border border-white/[0.06] rounded-xl px-3 py-2.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium truncate">vs {opponent ?? "?"}</p>
+                        <p className="text-xs text-gray-500 mt-0.5 flex gap-2">
+                          {tc && <span>{tc} min</span>}
+                          <span>{g.move_count} moves</span>
+                          {g.ended_at && <span>{new Date(g.ended_at).toLocaleDateString()}</span>}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className={`text-xs font-bold ${rc}`}>{myResult === "win" ? "Win" : myResult === "loss" ? "Loss" : "Draw"}</span>
+                        <Link href={`/games/${g.id}/review`} className="btn-secondary text-xs px-2 py-1">Replay</Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Wallet */}
           <div className="card flex flex-col gap-4">

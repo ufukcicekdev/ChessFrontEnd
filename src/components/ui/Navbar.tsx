@@ -34,9 +34,16 @@ export default function Navbar() {
       scrolled ? "bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/[0.06] shadow-2xl shadow-black/50" : "bg-transparent"
     )}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
-        <Link href="/" className="flex items-center gap-2.5 shrink-0 group">
-          <div className="w-8 h-8 bg-amber-500 rounded-lg flex items-center justify-center text-gray-950 font-black text-lg shadow-lg shadow-amber-500/30 group-hover:scale-110 transition-transform">♟</div>
-          <span className="font-bold text-lg tracking-tight">Chess</span>
+        <Link href="/" className="flex items-center gap-2 shrink-0 group">
+          {/* O-O castling logo: king square + rook square */}
+          <div className="flex rounded-lg overflow-hidden shadow-lg shadow-amber-500/25 group-hover:scale-105 transition-transform border border-amber-500/30">
+            <div className="w-8 h-8 bg-amber-500 flex items-center justify-center text-gray-950 font-black text-base">♔</div>
+            <div className="w-8 h-8 bg-amber-600 flex items-center justify-center text-gray-950 font-black text-base">♖</div>
+          </div>
+          <div className="flex items-baseline gap-0.5">
+            <span className="font-bold text-base tracking-tight text-white">chess</span>
+            <span className="font-black text-base tracking-widest text-amber-400 font-mono">O-O</span>
+          </div>
         </Link>
 
         <div className="hidden md:flex items-center gap-1">

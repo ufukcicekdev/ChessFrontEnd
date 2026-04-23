@@ -187,6 +187,7 @@ export default function GameReviewPage() {
             customSquareStyles={lastMoveStyle}
             customDarkSquareStyle={{ backgroundColor: "#b58863" }}
             customLightSquareStyle={{ backgroundColor: "#f0d9b5" }}
+            /* board theme intentionally fixed in review — no game state here */
           />
         </div>
 

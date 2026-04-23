@@ -10,6 +10,7 @@ import PlayerCard from "./PlayerCard";
 import GameOverModal from "./GameOverModal";
 import DrawOfferBanner from "./DrawOfferBanner";
 import DonateButton from "./DonateButton";
+import { useChessSound } from "@/hooks/useChessSound";
 
 interface ChessGameProps {
   roomId: string;
@@ -20,6 +21,16 @@ interface ChessGameProps {
   timeControl?: number;
   increment?: number;
 }
+
+const BOARD_THEMES = [
+  { name: "Classic",  dark: "#b58863", light: "#f0d9b5" },
+  { name: "Ocean",    dark: "#4a7fa5", light: "#d6e8f5" },
+  { name: "Forest",   dark: "#5a7a4a", light: "#d4e8c2" },
+  { name: "Slate",    dark: "#6b7280", light: "#e5e7eb" },
+  { name: "Purple",   dark: "#7c3aed", light: "#ede9fe" },
+] as const;
+
+const THEME_KEY = "chess_board_theme";
 
 export default function ChessGame({
   roomId,
@@ -33,6 +44,24 @@ export default function ChessGame({
   // Always connect with token if available.
   // Room REST data can be stale (e.g. players not assigned yet), so we derive role from WS state.
   const ws = useChessWebSocket(roomId, token);
+  const { play } = useChessSound();
+  const [confirmResign, setConfirmResign] = useState(false);
+  const [themeIdx, setThemeIdx] = useState<number>(() => {
+    if (typeof window === "undefined") return 0;
+    const saved = localStorage.getItem(THEME_KEY);
+    const idx = saved ? parseInt(saved, 10) : 0;
+    return isNaN(idx) ? 0 : Math.min(idx, BOARD_THEMES.length - 1);
+  });
+  const theme = BOARD_THEMES[themeIdx];
+
+  const prevPgnRef = useRef<string>("");
+  const prevResultRef = useRef<string | null>(null);
+
+  const cycleTheme = () => {
+    const next = (themeIdx + 1) % BOARD_THEMES.length;
+    setThemeIdx(next);
+    localStorage.setItem(THEME_KEY, String(next));
+  };
 
   const effectiveColor = useMemo<GameColor | "spectator">(() => {
     if (!currentUsername) return playerColor;
@@ -86,6 +115,31 @@ export default function ChessGame({
       ws.sendTimeLoss("black");
     }
   }, [activeSide, blackTime, isSpectator, whiteTime, ws]);
+
+  // Sound effects
+  useEffect(() => {
+    if (ws.pgn !== prevPgnRef.current && prevPgnRef.current !== "") {
+      if (ws.isCheck) play("check");
+      else {
+        const lastToken = ws.pgn.trim().split(/\s+/).pop() ?? "";
+        play(lastToken.includes("x") ? "capture" : "move");
+      }
+    }
+    prevPgnRef.current = ws.pgn;
+  }, [ws.pgn, ws.isCheck, play]);
+
+  useEffect(() => {
+    if (ws.gameResult && ws.gameResult !== "ongoing" && ws.gameResult !== prevResultRef.current) {
+      prevResultRef.current = ws.gameResult;
+      if (isSpectator) return;
+      if (ws.gameResult === "draw") { play("draw"); return; }
+      const iWin =
+        (ws.gameResult === "white" && ws.whitePlayer === currentUsername) ||
+        (ws.gameResult === "black" && ws.blackPlayer === currentUsername);
+      play(iWin ? "win" : "loss");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ws.gameResult]);
 
   const [optionSquares, setOptionSquares] = useState<Record<string, object>>({});
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
@@ -213,8 +267,8 @@ export default function ChessGame({
             boardOrientation={boardOrientation}
             customSquareStyles={{ ...lastMoveHighlight, ...checkHighlight, ...optionSquares }}
             arePiecesDraggable={isMyTurn}
-            customDarkSquareStyle={{ backgroundColor: "#b58863" }}
-            customLightSquareStyle={{ backgroundColor: "#f0d9b5" }}
+            customDarkSquareStyle={{ backgroundColor: theme.dark }}
+            customLightSquareStyle={{ backgroundColor: theme.light }}
           />
 
           {isSpectator && (
@@ -260,17 +314,47 @@ export default function ChessGame({
 
         {/* Controls */}
         {!isSpectator && !ws.gameResult && (
-          <div className="flex gap-2">
-            <button onClick={ws.sendResign} className="btn-danger flex-1 text-sm">
-              Resign
-            </button>
-            <button onClick={ws.offerDraw} className="btn-secondary flex-1 text-sm">
-              Draw
-            </button>
+          <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+              {confirmResign ? (
+                <>
+                  <button
+                    onClick={() => { ws.sendResign(); setConfirmResign(false); }}
+                    className="btn-danger flex-1 text-sm"
+                  >
+                    Confirm
+                  </button>
+                  <button onClick={() => setConfirmResign(false)} className="btn-secondary flex-1 text-sm">
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => setConfirmResign(true)} className="btn-danger flex-1 text-sm">
+                    Resign
+                  </button>
+                  <button onClick={ws.offerDraw} className="btn-secondary flex-1 text-sm">
+                    Draw
+                  </button>
+                </>
+              )}
+            </div>
           </div>
         )}
 
         <MoveHistory pgn={ws.pgn} />
+
+        {/* Board theme */}
+        <button
+          onClick={cycleTheme}
+          className="btn-ghost text-xs w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg border border-white/[0.06] hover:border-white/[0.14] transition-colors"
+        >
+          <span
+            className="inline-block w-3 h-3 rounded-sm border border-white/20 shrink-0"
+            style={{ background: theme.dark }}
+          />
+          <span className="text-gray-400">Board: <span className="text-gray-300">{theme.name}</span></span>
+        </button>
 
         {isSpectator && <DonateButton roomId={roomId} />}
 
