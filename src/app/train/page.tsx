@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess, Move, Square } from "chess.js";
 import { clsx } from "clsx";
@@ -67,7 +67,7 @@ export default function TrainPage() {
   const [status, setStatus] = useState<string>("You are White. Make a move.");
   const [busy, setBusy] = useState(false);
   const [promotionTo, setPromotionTo] = useState<Square | null>(null);
-  const pendingPromoRef = { current: null as { from: Square; to: Square } | null };
+  const pendingPromoRef = useRef<{ from: Square; to: Square } | null>(null);
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
   const [optionSquares, setOptionSquares] = useState<Record<string, object>>({});
 
