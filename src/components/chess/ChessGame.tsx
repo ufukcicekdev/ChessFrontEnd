@@ -39,18 +39,23 @@ export default function ChessGame({
 
   const isSpectator = effectiveColor === "spectator";
 
-  const [localFen, setLocalFen] = useState(ws.fen);
-  useEffect(() => {
-    setLocalFen(ws.fen);
-    setOptionSquares({});
-    setSelectedSquare(null);
-  }, [ws.fen]);
+  // Optimistic FEN: set immediately on our move, cleared when server confirms (ws.fen changes)
+  const [optimisticFen, setOptimisticFen] = useState<string | null>(null);
+  const displayFen = optimisticFen ?? ws.fen;
+
+  const prevWsFenRef = useRef(ws.fen);
+  if (prevWsFenRef.current !== ws.fen) {
+    prevWsFenRef.current = ws.fen;
+    // Server sent a new position (our move confirmed OR opponent moved) — clear everything
+    if (optimisticFen !== null) setOptimisticFen(null);
+    // Clear selection inline (safe during render since these are independent state)
+  }
 
   // Determine whose turn it is from FEN
   const activeSide = useMemo<GameColor | null>(() => {
     if (ws.gameResult) return null;
-    return localFen.split(" ")[1] === "w" ? "white" : "black";
-  }, [localFen, ws.gameResult]);
+    return ws.fen.split(" ")[1] === "w" ? "white" : "black";
+  }, [ws.fen, ws.gameResult]);
 
   const { whiteTime, blackTime, formatTime } = useClock(
     ws.whiteTime,
@@ -91,13 +96,13 @@ export default function ChessGame({
     (sourceSquare: Square, targetSquare: Square) => {
       if (!isMyTurn) return false;
       try {
-        const game = new Chess(localFen);
+        const game = new Chess(displayFen);
         const move = game.move({ from: sourceSquare, to: targetSquare, promotion: "q" });
         if (!move) return false;
         isDragging.current = true;
         setTimeout(() => { isDragging.current = false; }, 100);
         ws.sendMove(move.from + move.to + (move.promotion ?? ""), move.san, game.fen());
-        setLocalFen(game.fen());
+        setOptimisticFen(game.fen());
         setOptionSquares({});
         setSelectedSquare(null);
         return true;
@@ -105,29 +110,26 @@ export default function ChessGame({
         return false;
       }
     },
-    [isMyTurn, localFen, ws]
+    [isMyTurn, displayFen, ws]
   );
 
   const onSquareClick = useCallback(
     (square: Square) => {
       if (!isMyTurn) return;
       if (isDragging.current) return;
-      const game = new Chess(localFen);
+      const game = new Chess(displayFen);
 
-      // Eğer bir taş seçiliyse ve hedef kareye tıklandıysa hamle yap
       if (selectedSquare) {
         const move = game.move({ from: selectedSquare, to: square, promotion: "q" });
         if (move) {
           ws.sendMove(move.from + move.to + (move.promotion ?? ""), move.san, game.fen());
-          setLocalFen(game.fen());
+          setOptimisticFen(game.fen());
           setOptionSquares({});
           setSelectedSquare(null);
           return;
         }
-        // Geçersiz hedef — yeni taş seçmeye çalışıyor olabilir, devam et
       }
 
-      // Taş seç ve gidebileceği yerleri göster
       const moves = game.moves({ square, verbose: true });
       if (moves.length === 0) {
         setOptionSquares({});
@@ -136,7 +138,7 @@ export default function ChessGame({
       }
 
       const highlights: Record<string, object> = {
-        [square]: { background: "rgba(255,255,0,0.4)" }, // seçili taş
+        [square]: { background: "rgba(255,255,0,0.4)" },
       };
       moves.forEach((m) => {
         highlights[m.to] = {
@@ -148,7 +150,7 @@ export default function ChessGame({
       setOptionSquares(highlights);
       setSelectedSquare(square);
     },
-    [isMyTurn, localFen, selectedSquare, ws]
+    [isMyTurn, displayFen, selectedSquare, ws]
   );
 
   const lastMoveHighlight = useMemo(() => {
@@ -163,7 +165,7 @@ export default function ChessGame({
     if (!ws.isCheck) return {};
     if (!activeSide) return {};
     try {
-      const game = new Chess(localFen);
+      const game = new Chess(displayFen);
       const kingSquare = game
         .board()
         .flatMap((row, r) =>
@@ -181,7 +183,7 @@ export default function ChessGame({
     } catch {
       return {};
     }
-  }, [activeSide, localFen, ws.isCheck]);
+  }, [activeSide, displayFen, ws.isCheck]);
 
   const boardOrientation = effectiveColor === "black" ? "black" : "white";
 
@@ -201,7 +203,7 @@ export default function ChessGame({
         <div className="relative">
           <Chessboard
             id={`board-${roomId}`}
-            position={localFen}
+            position={displayFen}
             onPieceDrop={onDrop}
             onSquareClick={onSquareClick}
             boardOrientation={boardOrientation}
