@@ -78,6 +78,7 @@ export default function ChessGame({
 
   const [optionSquares, setOptionSquares] = useState<Record<string, object>>({});
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
+  const isDragging = useRef(false);
 
   const isMyTurn =
     !isSpectator &&
@@ -91,6 +92,8 @@ export default function ChessGame({
         const game = new Chess(localFen);
         const move = game.move({ from: sourceSquare, to: targetSquare, promotion: "q" });
         if (!move) return false;
+        isDragging.current = true;
+        setTimeout(() => { isDragging.current = false; }, 100);
         ws.sendMove(move.from + move.to + (move.promotion ?? ""), move.san, game.fen());
         setLocalFen(game.fen());
         setOptionSquares({});
@@ -106,6 +109,7 @@ export default function ChessGame({
   const onSquareClick = useCallback(
     (square: Square) => {
       if (!isMyTurn) return;
+      if (isDragging.current) return;
       const game = new Chess(localFen);
 
       // Eğer bir taş seçiliyse ve hedef kareye tıklandıysa hamle yap
