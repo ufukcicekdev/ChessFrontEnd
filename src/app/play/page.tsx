@@ -29,7 +29,22 @@ export default function PlayPage() {
   const [loading, setLoading] = useState(false);
   const [joinId, setJoinId] = useState("");
   const [searching, setSearching] = useState(false);
+  const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    api.get("/api/chess/rooms/?status=active")
+      .then(({ data }) => {
+        const rooms: { id: string; game?: { white_player?: { username: string }; black_player?: { username: string } } }[] = data.results ?? data;
+        const mine = rooms.find((r) =>
+          r.game?.white_player?.username === user.username ||
+          r.game?.black_player?.username === user.username
+        );
+        setActiveRoomId(mine?.id ?? null);
+      })
+      .catch(() => {});
+  }, [user]);
 
   const createRoom = async () => {
     if (!user) { router.push("/auth/login"); return; }
@@ -120,6 +135,21 @@ export default function PlayPage() {
           <h1 className="text-4xl font-black mb-2">Create a <span className="gradient-text">Game</span></h1>
           <p className="text-gray-500 text-sm">Choose your time control and start playing</p>
         </div>
+
+        {activeRoomId && (
+          <div className="card border border-amber-500/40 bg-amber-500/5 flex items-center justify-between gap-3 px-4 py-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 bg-amber-400 rounded-full animate-pulse shrink-0" />
+              <p className="text-sm text-amber-300 font-medium">You have an active game in progress.</p>
+            </div>
+            <button
+              onClick={() => router.push(`/room/${activeRoomId}`)}
+              className="btn-primary text-xs px-4 py-2 shrink-0"
+            >
+              Rejoin →
+            </button>
+          </div>
+        )}
 
         <div className="flex justify-center -mt-1 mb-1">
           <LivePlatformStats variant="compact" />

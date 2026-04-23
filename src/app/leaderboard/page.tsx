@@ -288,10 +288,11 @@ export default function LeaderboardPage() {
                           {!isMe && (
                             <button
                               onClick={() => setChallengeTarget(p)}
-                              className="text-xs font-semibold text-amber-400 border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500/70 transition-all px-3 py-1.5 rounded-lg"
+                              className="text-xs font-semibold text-amber-400 border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500/70 transition-all px-3 py-1.5 rounded-lg whitespace-nowrap"
                               title="Challenge to a game"
                             >
-                              ⚔ Challenge
+                              <span className="hidden sm:inline">⚔ Challenge</span>
+                              <span className="sm:hidden">⚔</span>
                             </button>
                           )}
                         </td>

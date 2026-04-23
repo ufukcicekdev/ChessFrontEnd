@@ -28,6 +28,9 @@ export default function ProfilePage() {
   const [profile, setProfile] = useState<User | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
 
+  const [newUsername, setNewUsername] = useState("");
+  const [usernameSaving, setUsernameSaving] = useState(false);
+
   const [iban, setIban] = useState("");
   const [ibanSaving, setIbanSaving] = useState(false);
 
@@ -64,6 +67,24 @@ export default function ProfilePage() {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const user = profile;
+
+  const saveUsername = async () => {
+    if (!newUsername.trim()) return;
+    setUsernameSaving(true);
+    try {
+      await api.patch("/api/users/profile/", { username: newUsername.trim() });
+      await fetchProfile();
+      const r = await api.get("/api/users/profile/");
+      setProfile(r.data);
+      setNewUsername("");
+      add("Username updated.", "success");
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { username?: string[] } } })?.response?.data?.username?.[0] ?? "Failed to update username.";
+      add(msg, "error");
+    } finally {
+      setUsernameSaving(false);
+    }
+  };
 
   const saveIban = async () => {
     setIbanSaving(true);
@@ -131,6 +152,23 @@ export default function ProfilePage() {
                 )}
               </div>
               <p className="text-gray-400 text-sm mt-0.5">{user.email}</p>
+              <div className="flex items-center gap-2 mt-2">
+                <input
+                  type="text"
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  placeholder="New username…"
+                  className="input text-xs py-1.5 px-2 w-36"
+                  onKeyDown={(e) => e.key === "Enter" && saveUsername()}
+                />
+                <button
+                  onClick={saveUsername}
+                  disabled={usernameSaving || !newUsername.trim()}
+                  className="btn-secondary text-xs px-3 py-1.5"
+                >
+                  {usernameSaving ? "…" : "Change"}
+                </button>
+              </div>
             </div>
             <div className="flex flex-col items-end gap-2 shrink-0">
               <div className="text-right">

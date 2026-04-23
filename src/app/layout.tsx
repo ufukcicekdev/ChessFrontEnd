@@ -7,8 +7,23 @@ import ChallengeNotification from "@/components/ChallengeNotification";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Chess",
-  description: "Play, watch, and compete in real-time chess tournaments.",
+  title: { default: "Chess0-0 — Play Chess Online", template: "%s | Chess0-0" },
+  description: "Real-time chess platform. Play, spectate live games, join tournaments and climb the leaderboard.",
+  keywords: ["chess", "online chess", "play chess", "chess tournament", "blitz chess"],
+  openGraph: {
+    title: "Chess0-0 — Play Chess Online",
+    description: "Real-time chess platform. Play, spectate live games, join tournaments and climb the leaderboard.",
+    url: "https://chess0-0.com",
+    siteName: "Chess0-0",
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "Chess0-0 — Play Chess Online",
+    description: "Real-time chess platform. Play, spectate and compete.",
+  },
+  metadataBase: new URL("https://chess0-0.com"),
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
