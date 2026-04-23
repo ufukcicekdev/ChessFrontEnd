@@ -16,27 +16,31 @@ export default function HistoryPage() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrev, setHasPrev] = useState(false);
+  const [total, setTotal] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try {
-        const { data } = await api.get<Game[] | { results: Game[] }>("/api/chess/games/recent/");
-        if (!cancelled) {
-          const list = Array.isArray(data) ? data : (data as { results: Game[] }).results ?? [];
-          setGames(list);
-        }
-      } catch {
-        if (!cancelled) setError("Could not load games.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
+    setLoading(true);
+    setError(null);
+    api.get(`/api/chess/games/recent/?page=${page}`)
+      .then(({ data }) => {
+        if (cancelled) return;
+        const list: Game[] = data.results ?? data;
+        setGames(list);
+        setHasNext(!!data.next);
+        setHasPrev(!!data.previous);
+        setTotal(data.count ?? list.length);
+      })
+      .catch(() => { if (!cancelled) setError("Could not load games."); })
+      .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, []);
+  }, [page]);
 
-  if (loading) return <div className="flex justify-center pt-24 text-gray-400">Loading…</div>;
-  if (error)   return <div className="flex justify-center pt-24 text-red-400">{error}</div>;
+  const pageSize = 20;
+  const totalPages = Math.ceil(total / pageSize);
 
   return (
     <div className="max-w-3xl mx-auto px-4 pt-24 pb-16">
@@ -44,10 +48,19 @@ export default function HistoryPage() {
         <h1 className="text-2xl font-semibold mb-1">Game History</h1>
         <p className="text-sm text-gray-500">
           All finished games on the platform. Click Replay to step through any game move by move.
+          {total > 0 && <span className="ml-1 text-gray-600">· {total} total</span>}
         </p>
       </div>
 
-      {games.length === 0 ? (
+      {error && <div className="text-red-400 text-sm mb-4">{error}</div>}
+
+      {loading ? (
+        <ul className="flex flex-col gap-2">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <li key={i} className="card h-16 animate-pulse bg-white/[0.02]" />
+          ))}
+        </ul>
+      ) : games.length === 0 ? (
         <div className="card text-center text-gray-400 py-10">No games yet.</div>
       ) : (
         <ul className="flex flex-col gap-2">
@@ -78,6 +91,29 @@ export default function HistoryPage() {
             );
           })}
         </ul>
+      )}
+
+      {/* Pagination */}
+      {(hasNext || hasPrev) && (
+        <div className="flex items-center justify-between mt-6">
+          <button
+            onClick={() => setPage((p) => p - 1)}
+            disabled={!hasPrev || loading}
+            className="btn-secondary text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            ← Previous
+          </button>
+          <span className="text-xs text-gray-500 font-mono">
+            Page {page}{totalPages > 1 ? ` / ${totalPages}` : ""}
+          </span>
+          <button
+            onClick={() => setPage((p) => p + 1)}
+            disabled={!hasNext || loading}
+            className="btn-secondary text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Next →
+          </button>
+        </div>
       )}
     </div>
   );
