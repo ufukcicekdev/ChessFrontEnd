@@ -54,8 +54,8 @@ export default function ChessGame({
   // Determine whose turn it is from FEN
   const activeSide = useMemo<GameColor | null>(() => {
     if (ws.gameResult) return null;
-    return ws.fen.split(" ")[1] === "w" ? "white" : "black";
-  }, [ws.fen, ws.gameResult]);
+    return displayFen.split(" ")[1] === "w" ? "white" : "black";
+  }, [displayFen, ws.gameResult]);
 
   const { whiteTime, blackTime, formatTime } = useClock(
     ws.whiteTime,
