@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useCallback, useState } from "react";
 import { WSMessage, GameStateMessage, GameResult } from "@/types";
+import api from "@/lib/api";
 
 const ABANDON_GRACE = 60;
 
@@ -77,18 +78,13 @@ export function useChessWebSocket(
     let wsUrl = `${wsBase}/ws/chess/${roomId}/`;
     if (token) {
       try {
-        const res = await fetch(`${apiBase}/api/chess/ws-ticket/`, {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const { ticket } = await res.json();
-          wsUrl = `${wsBase}/ws/chess/${roomId}/?ticket=${ticket}`;
-        } else {
-          wsUrl = `${wsBase}/ws/chess/${roomId}/?token=${token}`;
-        }
+        // Use axios so the 401 interceptor auto-refreshes the token if expired
+        const { data } = await api.post("/api/chess/ws-ticket/");
+        wsUrl = `${wsBase}/ws/chess/${roomId}/?ticket=${data.ticket}`;
       } catch {
-        wsUrl = `${wsBase}/ws/chess/${roomId}/?token=${token}`;
+        // Fallback: use token directly (middleware accepts ?token= as well)
+        const freshToken = localStorage.getItem("access_token") || token;
+        wsUrl = `${wsBase}/ws/chess/${roomId}/?token=${freshToken}`;
       }
     }
 
