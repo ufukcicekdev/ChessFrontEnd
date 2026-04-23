@@ -23,6 +23,7 @@ export default function ChallengeNotification() {
               <p className="text-xs text-gray-400">
                 challenges you · <span className="font-mono text-amber-400">{formatTime(c.time_control, c.increment)}</span>
                 {c.challenger_rating && <span className="text-gray-500"> · {c.challenger_rating} Elo</span>}
+                {c.wager_amount && <span className="text-emerald-400 font-semibold"> · ${c.wager_amount}</span>}
               </p>
             </div>
           </div>

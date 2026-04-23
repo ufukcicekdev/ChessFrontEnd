@@ -10,6 +10,7 @@ export interface PendingChallenge {
   challenger_rating: number | null;
   time_control: number;
   increment: number;
+  wager_amount: string | null;
   created_at: string;
 }
 

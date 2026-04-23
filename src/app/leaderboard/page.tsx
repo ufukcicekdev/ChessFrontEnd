@@ -17,25 +17,40 @@ const TIME_OPTIONS = [
   { label: "10+5", tc: 600, inc: 5 },
 ];
 
+interface PlatformFeatures {
+  paid_challenges_enabled: boolean;
+  challenge_fee_percent: string;
+  challenge_min_wager: string;
+  challenge_max_wager: string;
+}
+
 interface ChallengeModalProps {
   target: User;
   onClose: () => void;
+  features: PlatformFeatures;
 }
 
-function ChallengeModal({ target, onClose }: ChallengeModalProps) {
+function ChallengeModal({ target, onClose, features }: ChallengeModalProps) {
   const [selected, setSelected] = useState(TIME_OPTIONS[4]);
+  const [wager, setWager] = useState("");
+  const [isPaid, setIsPaid] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
 
   const send = async () => {
+    setError("");
     setSending(true);
     try {
       await api.post("/api/chess/challenges/", {
         username: target.username,
         time_control: selected.tc,
         increment: selected.inc,
+        ...(isPaid && wager ? { wager_amount: parseFloat(wager) } : {}),
       });
       setSent(true);
+    } catch (e: any) {
+      setError(e?.response?.data?.error || "Failed to send challenge");
     } finally {
       setSending(false);
     }
@@ -64,7 +79,7 @@ function ChallengeModal({ target, onClose }: ChallengeModalProps) {
             </div>
 
             <p className="text-sm text-gray-400 mb-3">Select time control:</p>
-            <div className="grid grid-cols-4 gap-2 mb-5">
+            <div className="grid grid-cols-4 gap-2 mb-4">
               {TIME_OPTIONS.map((opt) => (
                 <button
                   key={opt.label}
@@ -79,6 +94,40 @@ function ChallengeModal({ target, onClose }: ChallengeModalProps) {
                 </button>
               ))}
             </div>
+
+            {/* Paid challenge section — only shown when feature enabled */}
+            {features.paid_challenges_enabled && (
+              <div className="mb-4 border border-white/[0.08] rounded-lg p-3 bg-white/[0.02]">
+                <label className="flex items-center gap-2 cursor-pointer mb-2">
+                  <input
+                    type="checkbox"
+                    checked={isPaid}
+                    onChange={(e) => setIsPaid(e.target.checked)}
+                    className="accent-amber-500"
+                  />
+                  <span className="text-sm font-medium">Paid challenge</span>
+                  <span className="text-[10px] text-gray-500 ml-auto">{features.challenge_fee_percent}% fee</span>
+                </label>
+                {isPaid && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500 text-sm">$</span>
+                    <input
+                      type="number"
+                      min={features.challenge_min_wager}
+                      max={features.challenge_max_wager}
+                      step="0.5"
+                      value={wager}
+                      onChange={(e) => setWager(e.target.value)}
+                      placeholder={`${features.challenge_min_wager} – ${features.challenge_max_wager}`}
+                      className="flex-1 bg-white/[0.04] border border-white/10 rounded px-2 py-1 text-sm font-mono focus:outline-none focus:border-amber-500/50"
+                    />
+                    <span className="text-xs text-gray-500">USD</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
 
             <div className="flex gap-2">
               <button onClick={onClose} className="btn-secondary flex-1">Cancel</button>
@@ -97,10 +146,17 @@ export default function LeaderboardPage() {
   const [players, setPlayers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [challengeTarget, setChallengeTarget] = useState<User | null>(null);
+  const [features, setFeatures] = useState<PlatformFeatures>({
+    paid_challenges_enabled: false,
+    challenge_fee_percent: "10",
+    challenge_min_wager: "1.00",
+    challenge_max_wager: "100.00",
+  });
   const { user } = useAuthStore();
 
   useEffect(() => {
     api.get("/api/users/leaderboard/").then(({ data }) => setPlayers(data.results ?? data)).finally(() => setLoading(false));
+    api.get("/api/chess/features/").then(({ data }) => setFeatures(data)).catch(() => {});
   }, []);
 
   return (
@@ -198,7 +254,7 @@ export default function LeaderboardPage() {
       </div>
 
       {challengeTarget && (
-        <ChallengeModal target={challengeTarget} onClose={() => setChallengeTarget(null)} />
+        <ChallengeModal target={challengeTarget} onClose={() => setChallengeTarget(null)} features={features} />
       )}
     </div>
   );
