@@ -89,7 +89,15 @@ function ChallengeModal({ target, onClose, features }: ChallengeModalProps) {
             <p className="font-bold text-lg mb-1">Waiting for response…</p>
             <p className="text-gray-400 text-sm mb-1">{target.username} has been notified.</p>
             <p className="text-gray-600 text-xs mb-4">You'll be redirected automatically when they accept.</p>
-            <button onClick={onClose} className="btn-secondary w-full">Cancel</button>
+            <button
+              onClick={() => {
+                if (challengeId) api.post(`/api/chess/challenges/${challengeId}/cancel/`).catch(() => {});
+                onClose();
+              }}
+              className="btn-secondary w-full"
+            >
+              Cancel
+            </button>
           </div>
         ) : (
           <>
@@ -261,10 +269,10 @@ export default function LeaderboardPage() {
                           {!isMe && (
                             <button
                               onClick={() => setChallengeTarget(p)}
-                              className="text-xs text-gray-500 hover:text-amber-400 transition-colors px-2 py-1 rounded hover:bg-amber-500/10"
+                              className="text-xs font-semibold text-amber-400 border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 hover:border-amber-500/70 transition-all px-3 py-1.5 rounded-lg"
                               title="Challenge to a game"
                             >
-                              ⚔
+                              ⚔ Challenge
                             </button>
                           )}
                         </td>
