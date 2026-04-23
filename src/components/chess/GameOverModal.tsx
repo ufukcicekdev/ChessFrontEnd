@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { GameResult } from "@/types";
 import api from "@/lib/api";
 
@@ -13,6 +14,8 @@ interface GameOverModalProps {
   roomId: string;
   gameId?: string | null;
   isSpectator: boolean;
+  timeControl?: number;
+  increment?: number;
 }
 
 export default function GameOverModal({
@@ -24,7 +27,36 @@ export default function GameOverModal({
   roomId,
   gameId,
   isSpectator,
+  timeControl,
+  increment,
 }: GameOverModalProps) {
+  const router = useRouter();
+  const [rematching, setRematching] = useState(false);
+
+  const rematch = async () => {
+    if (!timeControl) return;
+    setRematching(true);
+    try {
+      const opponent = currentUsername === whitePlayer ? blackPlayer : whitePlayer;
+      const { data } = await api.post("/api/chess/rooms/", {
+        name: `Rematch`,
+        is_public: false,
+        time_control: timeControl,
+        increment: increment ?? 0,
+      });
+      if (opponent) {
+        await api.post("/api/chess/challenges/", {
+          username: opponent,
+          time_control: timeControl,
+          increment: increment ?? 0,
+        }).catch(() => {});
+      }
+      router.push(`/room/${data.id}`);
+    } catch {
+      setRematching(false);
+    }
+  };
+
   const headline =
     result === "draw" ? "Draw!"
     : result === "white" ? `${whitePlayer ?? "White"} wins!`
@@ -95,17 +127,18 @@ export default function GameOverModal({
               )}
             </div>
           ) : (
-            <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <Link href="/play" className="btn-primary w-full sm:w-auto text-center">
+            <div className="flex flex-col sm:flex-row gap-2 justify-center flex-wrap">
+              {timeControl && (
+                <button onClick={rematch} disabled={rematching} className="btn-primary w-full sm:w-auto">
+                  {rematching ? "Creating…" : "⚔ Rematch"}
+                </button>
+              )}
+              <Link href="/play" className="btn-secondary w-full sm:w-auto text-center">
                 New Game
               </Link>
-              {gameId ? (
+              {gameId && (
                 <Link href={`/games/${gameId}/review`} className="btn-secondary w-full sm:w-auto text-center">
-                  Review / Replay
-                </Link>
-              ) : (
-                <Link href={`/room/${roomId}`} className="btn-secondary w-full sm:w-auto text-center">
-                  Review
+                  Replay
                 </Link>
               )}
             </div>

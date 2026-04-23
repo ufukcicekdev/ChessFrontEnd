@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { User } from "@/types";
 import api from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -267,7 +268,7 @@ export default function LeaderboardPage() {
                           <div className="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-sm font-bold text-amber-400 shrink-0">
                             {p.username[0].toUpperCase()}
                           </div>
-                          <span className="font-semibold">{p.username}</span>
+                          <Link href={`/profile/${p.username}`} className="font-semibold hover:text-amber-400 transition-colors">{p.username}</Link>
                           {isMe && <span className="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">you</span>}
                         </div>
                       </td>

@@ -17,6 +17,8 @@ interface ChessGameProps {
   token: string | null;
   playerColor: GameColor | "spectator";
   currentUsername: string | null;
+  timeControl?: number;
+  increment?: number;
 }
 
 export default function ChessGame({
@@ -25,6 +27,8 @@ export default function ChessGame({
   token,
   playerColor,
   currentUsername,
+  timeControl,
+  increment,
 }: ChessGameProps) {
   // Always connect with token if available.
   // Room REST data can be stale (e.g. players not assigned yet), so we derive role from WS state.
@@ -292,6 +296,8 @@ export default function ChessGame({
           roomId={roomId}
           gameId={gameId}
           isSpectator={isSpectator}
+          timeControl={timeControl}
+          increment={increment}
         />
       )}
     </div>

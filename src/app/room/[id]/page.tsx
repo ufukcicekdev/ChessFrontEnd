@@ -48,6 +48,8 @@ export default function RoomPage() {
         token={token}
         playerColor={playerColor}
         currentUsername={user?.username ?? null}
+        timeControl={room.time_control}
+        increment={room.increment}
       />
     </div>
   );
