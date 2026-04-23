@@ -22,16 +22,19 @@ api.interceptors.response.use(
       const refresh = localStorage.getItem("refresh_token");
       if (refresh) {
         try {
-          const { data } = await axios.post(
-            "/api/token/refresh/",
-            { refresh }
-          );
+          const { data } = await axios.post("/api/token/refresh/", { refresh });
           localStorage.setItem("access_token", data.access);
+          if (data.refresh) localStorage.setItem("refresh_token", data.refresh);
+          // Keep Zustand store in sync so WS hook always has the latest token
+          const { useAuthStore } = await import("@/store/authStore");
+          useAuthStore.setState({ token: data.access });
           err.config.headers.Authorization = `Bearer ${data.access}`;
           return api(err.config);
         } catch {
           localStorage.removeItem("access_token");
           localStorage.removeItem("refresh_token");
+          const { useAuthStore } = await import("@/store/authStore");
+          useAuthStore.setState({ token: null, user: null });
         }
       }
     }
