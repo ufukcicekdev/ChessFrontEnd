@@ -116,17 +116,19 @@ export default function ChessGame({
     }
   }, [activeSide, blackTime, isSpectator, whiteTime, ws]);
 
-  // Sound effects
+  // Sound effects — keyed only on pgn so we fire exactly once per move
   useEffect(() => {
-    if (ws.pgn !== prevPgnRef.current && prevPgnRef.current !== "") {
-      if (ws.isCheck) play("check");
-      else {
-        const lastToken = ws.pgn.trim().split(/\s+/).pop() ?? "";
-        play(lastToken.includes("x") ? "capture" : "move");
-      }
-    }
+    if (ws.pgn === prevPgnRef.current) return;
+    const isFirst = prevPgnRef.current === "";
     prevPgnRef.current = ws.pgn;
-  }, [ws.pgn, ws.isCheck, play]);
+    if (isFirst) return; // skip initial state load
+    const lastToken = ws.pgn.trim().split(/\s+/).pop() ?? "";
+    // SAN: "+" → check, "x" → capture
+    if (lastToken.includes("+") || lastToken.includes("#")) play("check");
+    else if (lastToken.includes("x")) play("capture");
+    else play("move");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ws.pgn]);
 
   useEffect(() => {
     if (ws.gameResult && ws.gameResult !== "ongoing" && ws.gameResult !== prevResultRef.current) {
@@ -143,6 +145,8 @@ export default function ChessGame({
 
   const [optionSquares, setOptionSquares] = useState<Record<string, object>>({});
   const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
+  const [promotionTo, setPromotionTo] = useState<Square | null>(null);
+  const pendingPromoRef = useRef<{ from: Square; to: Square } | null>(null);
   const isDragging = useRef(false);
 
   const isMyTurn =
@@ -150,15 +154,26 @@ export default function ChessGame({
     ((effectiveColor === "white" && activeSide === "white") ||
       (effectiveColor === "black" && activeSide === "black"));
 
-  const onDrop = useCallback(
-    (sourceSquare: Square, targetSquare: Square) => {
-      if (!isMyTurn) return false;
+  const isPromotionMove = useCallback(
+    (from: Square, to: Square): boolean => {
       try {
         const game = new Chess(displayFen);
-        const move = game.move({ from: sourceSquare, to: targetSquare, promotion: "q" });
+        const piece = game.get(from);
+        if (!piece || piece.type !== "p") return false;
+        return (piece.color === "w" && to[1] === "8") || (piece.color === "b" && to[1] === "1");
+      } catch {
+        return false;
+      }
+    },
+    [displayFen],
+  );
+
+  const commitMove = useCallback(
+    (from: Square, to: Square, promotion: "q" | "r" | "b" | "n") => {
+      try {
+        const game = new Chess(displayFen);
+        const move = game.move({ from, to, promotion });
         if (!move) return false;
-        isDragging.current = true;
-        setTimeout(() => { isDragging.current = false; }, 100);
         ws.sendMove(move.from + move.to + (move.promotion ?? ""), move.san, game.fen());
         setOptimisticFen(game.fen());
         setOptionSquares({});
@@ -168,7 +183,34 @@ export default function ChessGame({
         return false;
       }
     },
-    [isMyTurn, displayFen, ws]
+    [displayFen, ws],
+  );
+
+  const onDrop = useCallback(
+    (sourceSquare: Square, targetSquare: Square) => {
+      if (!isMyTurn) return false;
+      isDragging.current = true;
+      setTimeout(() => { isDragging.current = false; }, 100);
+      if (isPromotionMove(sourceSquare, targetSquare)) {
+        pendingPromoRef.current = { from: sourceSquare, to: targetSquare };
+        setPromotionTo(targetSquare);
+        return true;
+      }
+      return commitMove(sourceSquare, targetSquare, "q");
+    },
+    [isMyTurn, isPromotionMove, commitMove],
+  );
+
+  const onPromotionPieceSelect = useCallback(
+    (piece?: string) => {
+      const pending = pendingPromoRef.current;
+      setPromotionTo(null);
+      pendingPromoRef.current = null;
+      if (!pending || !piece) return false;
+      const promo = piece.slice(1).toLowerCase() as "q" | "r" | "b" | "n";
+      return commitMove(pending.from, pending.to, promo);
+    },
+    [commitMove],
   );
 
   const onSquareClick = useCallback(
@@ -178,6 +220,13 @@ export default function ChessGame({
       const game = new Chess(displayFen);
 
       if (selectedSquare) {
+        if (isPromotionMove(selectedSquare, square)) {
+          pendingPromoRef.current = { from: selectedSquare, to: square };
+          setPromotionTo(square);
+          setOptionSquares({});
+          setSelectedSquare(null);
+          return;
+        }
         const move = game.move({ from: selectedSquare, to: square, promotion: "q" });
         if (move) {
           ws.sendMove(move.from + move.to + (move.promotion ?? ""), move.san, game.fen());
@@ -269,6 +318,10 @@ export default function ChessGame({
             arePiecesDraggable={isMyTurn}
             customDarkSquareStyle={{ backgroundColor: theme.dark }}
             customLightSquareStyle={{ backgroundColor: theme.light }}
+            showPromotionDialog={!!promotionTo}
+            promotionToSquare={promotionTo}
+            onPromotionPieceSelect={onPromotionPieceSelect}
+            promotionDialogVariant="default"
           />
 
           {isSpectator && (

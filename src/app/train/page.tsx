@@ -66,6 +66,10 @@ export default function TrainPage() {
   const [orientation, setOrientation] = useState<"white" | "black">("white");
   const [status, setStatus] = useState<string>("You are White. Make a move.");
   const [busy, setBusy] = useState(false);
+  const [promotionTo, setPromotionTo] = useState<Square | null>(null);
+  const pendingPromoRef = { current: null as { from: Square; to: Square } | null };
+  const [selectedSquare, setSelectedSquare] = useState<Square | null>(null);
+  const [optionSquares, setOptionSquares] = useState<Record<string, object>>({});
 
   const fen = game.fen();
 
@@ -87,55 +91,102 @@ export default function TrainPage() {
     return null;
   }, [game]);
 
-  const onDrop = useCallback(
-    (sourceSquare: Square, targetSquare: Square) => {
-      if (headline) return false;
-      if (busy) return false;
+  const isPromo = useCallback(
+    (from: Square, to: Square) => {
+      const piece = game.get(from);
+      if (!piece || piece.type !== "p") return false;
+      return (piece.color === "w" && to[1] === "8") || (piece.color === "b" && to[1] === "1");
+    },
+    [game],
+  );
 
-      // Human always white for now
-      if (game.turn() !== "w") return false;
-
+  const commitTrainMove = useCallback(
+    (from: Square, to: Square, promo: "q" | "r" | "b" | "n" = "q") => {
+      if (headline || busy || game.turn() !== "w") return false;
       try {
         const next = new Chess(game.fen());
-        const move = next.move({ from: sourceSquare, to: targetSquare, promotion: "q" });
+        const move = next.move({ from, to, promotion: promo });
         if (!move) return false;
-
         setGame(next);
-
-        if (next.isGameOver()) {
-          setStatus("Game over");
-          return true;
-        }
-
+        if (next.isGameOver()) { setStatus("Game over"); return true; }
         setBusy(true);
         setStatus("Engine is thinking…");
-
-        // Defer engine move so UI can update the human move first.
         window.setTimeout(() => {
           try {
             const engineGame = new Chess(next.fen());
             const engineMove = pickEngineMove(engineGame, difficulty);
             engineGame.move(engineMove);
             setGame(engineGame);
-
-            if (engineGame.isGameOver()) {
-              setStatus("Game over");
-            } else {
-              setStatus("Your move");
-            }
-          } catch {
-            setStatus("Engine failed to move");
-          } finally {
-            setBusy(false);
-          }
+            setStatus(engineGame.isGameOver() ? "Game over" : "Your move");
+          } catch { setStatus("Engine failed to move"); }
+          finally { setBusy(false); }
         }, 250);
-
         return true;
-      } catch {
-        return false;
-      }
+      } catch { return false; }
     },
-    [busy, difficulty, game, headline]
+    [busy, difficulty, game, headline],
+  );
+
+  const onDrop = useCallback(
+    (sourceSquare: Square, targetSquare: Square) => {
+      if (headline) return false;
+      if (busy) return false;
+      if (game.turn() !== "w") return false;
+
+      if (isPromo(sourceSquare, targetSquare)) {
+        pendingPromoRef.current = { from: sourceSquare, to: targetSquare };
+        setPromotionTo(targetSquare);
+        return true;
+      }
+      return commitTrainMove(sourceSquare, targetSquare);
+    },
+    [busy, commitTrainMove, game, headline, isPromo],
+  );
+
+  const canMove = !headline && !busy && game.turn() === "w";
+
+  const onSquareClick = useCallback(
+    (square: Square) => {
+      if (!canMove) return;
+
+      if (selectedSquare) {
+        // Try to move to clicked square
+        if (isPromo(selectedSquare, square)) {
+          pendingPromoRef.current = { from: selectedSquare, to: square };
+          setPromotionTo(square);
+          setOptionSquares({});
+          setSelectedSquare(null);
+          return;
+        }
+        const moved = commitTrainMove(selectedSquare, square);
+        if (moved) {
+          setOptionSquares({});
+          setSelectedSquare(null);
+          return;
+        }
+      }
+
+      // Select piece and show move hints
+      const moves = game.moves({ square, verbose: true });
+      if (moves.length === 0) {
+        setOptionSquares({});
+        setSelectedSquare(null);
+        return;
+      }
+      const highlights: Record<string, object> = {
+        [square]: { background: "rgba(255,255,0,0.4)" },
+      };
+      moves.forEach((m) => {
+        highlights[m.to] = {
+          background: game.get(m.to)
+            ? "radial-gradient(circle, rgba(255,0,0,0.4) 85%, transparent 85%)"
+            : "radial-gradient(circle, rgba(0,0,0,0.15) 25%, transparent 25%)",
+        };
+      });
+      setOptionSquares(highlights);
+      setSelectedSquare(square);
+    },
+    [canMove, commitTrainMove, game, isPromo, selectedSquare],
   );
 
   return (
@@ -196,10 +247,22 @@ export default function TrainPage() {
                 id="train-board"
                 position={fen}
                 onPieceDrop={onDrop}
+                onSquareClick={onSquareClick}
                 boardOrientation={orientation}
-                arePiecesDraggable={!headline && !busy && game.turn() === "w"}
+                arePiecesDraggable={canMove}
+                customSquareStyles={optionSquares}
                 customDarkSquareStyle={{ backgroundColor: "#b58863" }}
                 customLightSquareStyle={{ backgroundColor: "#f0d9b5" }}
+                showPromotionDialog={!!promotionTo}
+                promotionToSquare={promotionTo}
+                onPromotionPieceSelect={(piece) => {
+                  const pending = pendingPromoRef.current;
+                  setPromotionTo(null);
+                  pendingPromoRef.current = null;
+                  if (!pending || !piece) return false;
+                  const promo = piece.slice(1).toLowerCase() as "q" | "r" | "b" | "n";
+                  return commitTrainMove(pending.from, pending.to, promo);
+                }}
               />
             </div>
             <p className="text-xs text-gray-500 mt-3 text-center">{status}</p>
