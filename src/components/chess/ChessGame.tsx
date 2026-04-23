@@ -11,6 +11,7 @@ import GameOverModal from "./GameOverModal";
 import DrawOfferBanner from "./DrawOfferBanner";
 import DonateButton from "./DonateButton";
 import { useChessSound } from "@/hooks/useChessSound";
+import { useSoundSetting } from "@/hooks/useSoundSetting";
 
 interface ChessGameProps {
   roomId: string;
@@ -44,7 +45,8 @@ export default function ChessGame({
   // Always connect with token if available.
   // Room REST data can be stale (e.g. players not assigned yet), so we derive role from WS state.
   const ws = useChessWebSocket(roomId, token);
-  const { play } = useChessSound();
+  const { enabled: soundEnabled, toggle: toggleSound } = useSoundSetting();
+  const { play } = useChessSound(soundEnabled);
   const [confirmResign, setConfirmResign] = useState(false);
   const [themeIdx, setThemeIdx] = useState<number>(() => {
     if (typeof window === "undefined") return 0;
@@ -397,17 +399,23 @@ export default function ChessGame({
 
         <MoveHistory pgn={ws.pgn} />
 
-        {/* Board theme */}
-        <button
-          onClick={cycleTheme}
-          className="btn-ghost text-xs w-full text-left flex items-center gap-2 px-3 py-2 rounded-lg border border-white/[0.06] hover:border-white/[0.14] transition-colors"
-        >
-          <span
-            className="inline-block w-3 h-3 rounded-sm border border-white/20 shrink-0"
-            style={{ background: theme.dark }}
-          />
-          <span className="text-gray-400">Board: <span className="text-gray-300">{theme.name}</span></span>
-        </button>
+        {/* Settings row */}
+        <div className="flex gap-2">
+          <button
+            onClick={cycleTheme}
+            className="btn-ghost text-xs flex-1 text-left flex items-center gap-2 px-3 py-2 rounded-lg border border-white/[0.06] hover:border-white/[0.14] transition-colors"
+          >
+            <span className="inline-block w-3 h-3 rounded-sm border border-white/20 shrink-0" style={{ background: theme.dark }} />
+            <span className="text-gray-400 truncate">Board: <span className="text-gray-300">{theme.name}</span></span>
+          </button>
+          <button
+            onClick={toggleSound}
+            title={soundEnabled ? "Mute sounds" : "Unmute sounds"}
+            className="btn-ghost text-sm px-3 py-2 rounded-lg border border-white/[0.06] hover:border-white/[0.14] transition-colors shrink-0"
+          >
+            {soundEnabled ? "🔊" : "🔇"}
+          </button>
+        </div>
 
         {isSpectator && <DonateButton roomId={roomId} />}
 

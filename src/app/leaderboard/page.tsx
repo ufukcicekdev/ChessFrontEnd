@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { User } from "@/types";
@@ -176,7 +176,7 @@ function ChallengeModal({ target, onClose, features }: ChallengeModalProps) {
   );
 }
 
-export default function LeaderboardPage() {
+function LeaderboardContent() {
   const [players, setPlayers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -325,5 +325,13 @@ export default function LeaderboardPage() {
         <ChallengeModal target={challengeTarget} onClose={() => setChallengeTarget(null)} features={features} />
       )}
     </div>
+  );
+}
+
+export default function LeaderboardPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-hero pt-24 flex justify-center text-gray-500">Loading…</div>}>
+      <LeaderboardContent />
+    </Suspense>
   );
 }

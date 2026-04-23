@@ -5,6 +5,7 @@ import { Chessboard } from "react-chessboard";
 import { Chess, Move, Square } from "chess.js";
 import { clsx } from "clsx";
 import { useChessSound } from "@/hooks/useChessSound";
+import { useSoundSetting } from "@/hooks/useSoundSetting";
 
 type Difficulty = "easy" | "medium" | "hard";
 
@@ -62,7 +63,8 @@ function pickEngineMove(game: Chess, difficulty: Difficulty): Move {
 }
 
 export default function TrainPage() {
-  const { play } = useChessSound();
+  const { enabled: soundEnabled, toggle: toggleSound } = useSoundSetting();
+  const { play } = useChessSound(soundEnabled);
   const [difficulty, setDifficulty] = useState<Difficulty>("medium");
   const [playerColor, setPlayerColor] = useState<"white" | "black">("white");
   const [game, setGame] = useState(() => new Chess());
@@ -268,7 +270,14 @@ export default function TrainPage() {
             </div>
           </div>
 
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-2 justify-end items-center">
+            <button
+              onClick={toggleSound}
+              title={soundEnabled ? "Mute" : "Unmute"}
+              className="btn-secondary text-sm px-3"
+            >
+              {soundEnabled ? "🔊" : "🔇"}
+            </button>
             <button onClick={() => setOrientation((o) => (o === "white" ? "black" : "white"))} className="btn-secondary text-sm">
               Flip board
             </button>
@@ -310,9 +319,9 @@ export default function TrainPage() {
           <div className="card flex flex-col gap-3">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Notes</p>
             <ul className="text-sm text-gray-400 leading-relaxed list-disc pl-5 space-y-2">
-              <li>This is a lightweight bot (not Stockfish).</li>
-              <li>You always play White for now (simplest UX).</li>
-              <li>Hard is stronger than Easy, but still heuristic-based.</li>
+              <li>Lightweight heuristic bot — not Stockfish.</li>
+              <li>Choose White or Black; engine plays the other side.</li>
+              <li>Hard is stronger than Easy but still beatable.</li>
             </ul>
           </div>
         </div>
