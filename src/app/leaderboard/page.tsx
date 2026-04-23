@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { User } from "@/types";
 import api from "@/lib/api";
@@ -31,23 +31,47 @@ interface ChallengeModalProps {
 }
 
 function ChallengeModal({ target, onClose, features }: ChallengeModalProps) {
+  const router = useRouter();
   const [selected, setSelected] = useState(TIME_OPTIONS[4]);
   const [wager, setWager] = useState("");
   const [isPaid, setIsPaid] = useState(false);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
+  const [challengeId, setChallengeId] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Poll for acceptance after challenge is sent
+  useEffect(() => {
+    if (!challengeId) return;
+    pollRef.current = setInterval(async () => {
+      try {
+        const { data } = await api.get(`/api/chess/challenges/${challengeId}/status/`);
+        if (data.status === "accepted" && data.room_id) {
+          clearInterval(pollRef.current!);
+          router.push(`/room/${data.room_id}`);
+        } else if (data.status === "declined" || data.status === "expired") {
+          clearInterval(pollRef.current!);
+          setSent(false);
+          setError(data.status === "declined" ? "Challenge declined." : "Challenge expired.");
+          setChallengeId(null);
+        }
+      } catch {}
+    }, 2000);
+    return () => clearInterval(pollRef.current!);
+  }, [challengeId, router]);
 
   const send = async () => {
     setError("");
     setSending(true);
     try {
-      await api.post("/api/chess/challenges/", {
+      const { data } = await api.post("/api/chess/challenges/", {
         username: target.username,
         time_control: selected.tc,
         increment: selected.inc,
         ...(isPaid && wager ? { wager_amount: parseFloat(wager) } : {}),
       });
+      setChallengeId(data.id);
       setSent(true);
     } catch (e: any) {
       setError(e?.response?.data?.error || "Failed to send challenge");
@@ -61,10 +85,11 @@ function ChallengeModal({ target, onClose, features }: ChallengeModalProps) {
       <div className="card max-w-sm w-full p-6" onClick={(e) => e.stopPropagation()}>
         {sent ? (
           <div className="text-center py-4">
-            <div className="text-4xl mb-3">⚔️</div>
-            <p className="font-bold text-lg mb-1">Challenge sent!</p>
-            <p className="text-gray-400 text-sm mb-4">{target.username} will be notified.</p>
-            <button onClick={onClose} className="btn-primary w-full">Close</button>
+            <div className="text-4xl mb-3 animate-pulse">⚔️</div>
+            <p className="font-bold text-lg mb-1">Waiting for response…</p>
+            <p className="text-gray-400 text-sm mb-1">{target.username} has been notified.</p>
+            <p className="text-gray-600 text-xs mb-4">You'll be redirected automatically when they accept.</p>
+            <button onClick={onClose} className="btn-secondary w-full">Cancel</button>
           </div>
         ) : (
           <>
