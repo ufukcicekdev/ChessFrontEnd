@@ -42,6 +42,8 @@ export default function ChessGame({
   const [localFen, setLocalFen] = useState(ws.fen);
   useEffect(() => {
     setLocalFen(ws.fen);
+    setOptionSquares({});
+    setSelectedSquare(null);
   }, [ws.fen]);
 
   // Determine whose turn it is from FEN
