@@ -26,6 +26,7 @@ const STATUS_CONFIG: Record<string, { label: string; badge: string }> = {
   registration: { label: "Registration Open", badge: "badge-blue" },
   active:       { label: "In Progress",        badge: "badge-green" },
   finished:     { label: "Finished",           badge: "badge-gray" },
+  cancelled:    { label: "Cancelled",          badge: "badge-gray" },
 };
 
 export default function TournamentsPage() {

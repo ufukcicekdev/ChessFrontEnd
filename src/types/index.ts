@@ -124,7 +124,7 @@ export interface TournamentRound {
   matches: TournamentMatch[];
 }
 
-export type TournamentStatus = "registration" | "active" | "finished";
+export type TournamentStatus = "registration" | "active" | "finished" | "cancelled";
 
 export interface Tournament {
   id: string;

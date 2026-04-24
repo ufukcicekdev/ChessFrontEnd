@@ -63,6 +63,7 @@ export default function TournamentDetailPage() {
   const isParticipant = tournament.participants.some((p) => p.username === user?.username);
   const isRegistration = tournament.status === "registration";
   const isActive = tournament.status === "active";
+  const isCancelled = tournament.status === "cancelled";
 
   return (
     <div className="max-w-5xl mx-auto px-4 pt-24 pb-16 flex flex-col gap-8">
@@ -85,8 +86,8 @@ export default function TournamentDetailPage() {
           <p className="text-sm text-gray-500 mt-2">
             {tournament.participant_count}/{tournament.max_players} players ·{" "}
             {tournament.time_control / 60}+{tournament.increment} min ·{" "}
-            <span className={isRegistration ? "text-blue-400" : isActive ? "text-emerald-400" : "text-gray-500"}>
-              {isRegistration ? "Registration open" : isActive ? "In progress" : "Finished"}
+            <span className={isRegistration ? "text-blue-400" : isActive ? "text-emerald-400" : isCancelled ? "text-red-400" : "text-gray-500"}>
+              {isRegistration ? "Registration open" : isActive ? "In progress" : isCancelled ? "Cancelled" : "Finished"}
             </span>
           </p>
         </div>
