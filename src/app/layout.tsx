@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     type: "website",
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title: "Chess0-0 — Play Chess Online",
     description: "Real-time chess platform. Play, spectate and compete.",
   },

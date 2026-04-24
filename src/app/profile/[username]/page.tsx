@@ -25,6 +25,7 @@ interface PublicUser {
   games_played: number;
   games_won: number;
   games_drawn: number;
+  avatar?: string;
   rank: number;
   total: number;
 }
@@ -67,8 +68,13 @@ export default function PublicProfilePage() {
 
         {/* Kimlik kartı */}
         <div className="card flex items-center gap-5">
-          <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-3xl font-black text-amber-400 shrink-0">
-            {profile.username[0].toUpperCase()}
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-3xl font-black text-amber-400 shrink-0 overflow-hidden">
+            {profile.avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={profile.avatar} alt={profile.username} className="w-full h-full object-cover" />
+            ) : (
+              profile.username[0].toUpperCase()
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">

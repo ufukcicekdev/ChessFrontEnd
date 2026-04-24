@@ -11,6 +11,8 @@ interface GameOverModalProps {
   currentUsername: string | null;
   whitePlayer: string | null;
   blackPlayer: string | null;
+  whiteRatingBefore?: number | null;
+  blackRatingBefore?: number | null;
   roomId: string;
   gameId?: string | null;
   isSpectator: boolean;
@@ -24,6 +26,8 @@ export default function GameOverModal({
   currentUsername,
   whitePlayer,
   blackPlayer,
+  whiteRatingBefore,
+  blackRatingBefore,
   roomId,
   gameId,
   isSpectator,
@@ -75,34 +79,52 @@ export default function GameOverModal({
     ((result === "white" && currentUsername === whitePlayer) ||
       (result === "black" && currentUsername === blackPlayer));
 
-  const [profileLine, setProfileLine] = useState<string | null>(null);
+  const isWhite = currentUsername === whitePlayer;
+  const myRatingBefore = isWhite ? whiteRatingBefore : blackRatingBefore;
+
+  const [newRating, setNewRating] = useState<number | null>(null);
+  const [newTitle, setNewTitle] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isSpectator) return;
-    if (!currentUsername) return;
-
+    if (isSpectator || !currentUsername) return;
     let cancelled = false;
-    (async () => {
+    // Ratings update via Celery; poll a few times to catch it
+    let attempts = 0;
+    const poll = async () => {
       try {
-        // Ratings are updated server-side at game end; refresh profile to reflect new Elo + title.
         const { data } = await api.get("/api/users/profile/");
         if (cancelled) return;
-        const title = data.title as string | undefined;
         const rating = data.rating as number | undefined;
-        if (title && typeof rating === "number") {
-          setProfileLine(`Your rating: ${rating} · ${title}`);
-        } else if (typeof rating === "number") {
-          setProfileLine(`Your rating: ${rating}`);
+        const title = data.title as string | undefined;
+        if (typeof rating === "number") {
+          // Keep polling until rating changes or max attempts reached
+          if (myRatingBefore && rating === myRatingBefore && attempts < 8) {
+            attempts++;
+            setTimeout(poll, 2500);
+            return;
+          }
+          // After max attempts just show the rating as-is (change may be 0 or task pending)
+          setNewRating(rating);
         }
+        if (title) setNewTitle(title);
       } catch {
         // ignore
       }
-    })();
-
-    return () => {
-      cancelled = true;
     };
-  }, [currentUsername, isSpectator, result]);
+    setTimeout(poll, 1500);
+    return () => { cancelled = true; };
+  }, [currentUsername, isSpectator, result]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const ratingChange = newRating != null && myRatingBefore != null ? newRating - myRatingBefore : null;
+  const ratingChangeStr =
+    ratingChange == null ? null
+    : ratingChange > 0 ? `+${ratingChange}`
+    : `${ratingChange}`;
+  const ratingChangeColor =
+    ratingChange == null ? ""
+    : ratingChange > 0 ? "text-emerald-400"
+    : ratingChange < 0 ? "text-red-400"
+    : "text-gray-400";
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
@@ -114,7 +136,29 @@ export default function GameOverModal({
         <p className="text-gray-400 text-sm">
           {reasonLabel ?? (result === "draw" ? "Game drawn by agreement" : `${result} wins`)}
         </p>
-        {profileLine && <p className="text-xs text-gray-500">{profileLine}</p>}
+
+        {!isSpectator && (
+          <div className="flex items-center justify-center gap-2 text-sm">
+            {newRating != null ? (
+              <>
+                <span className="font-mono font-bold text-amber-400">{newRating}</span>
+                {ratingChangeStr && (
+                  <span className={`font-mono text-xs font-semibold ${ratingChangeColor}`}>
+                    ({ratingChangeStr})
+                  </span>
+                )}
+                {newTitle && (
+                  <span className="text-xs text-gray-400 bg-white/[0.06] border border-white/[0.08] px-2 py-0.5 rounded">
+                    {newTitle}
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className="text-xs text-gray-600 animate-pulse">Updating rating…</span>
+            )}
+          </div>
+        )}
+
         <div className="flex flex-col gap-2">
           {isSpectator ? (
             <div className="flex flex-col sm:flex-row gap-2 justify-center">

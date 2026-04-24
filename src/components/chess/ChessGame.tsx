@@ -438,6 +438,8 @@ export default function ChessGame({
           currentUsername={currentUsername}
           whitePlayer={ws.whitePlayer}
           blackPlayer={ws.blackPlayer}
+          whiteRatingBefore={ws.whiteRating}
+          blackRatingBefore={ws.blackRating}
           roomId={roomId}
           gameId={gameId}
           isSpectator={isSpectator}

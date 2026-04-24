@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useEffect, useState } from "react";
 import { clsx } from "clsx";
+import { useChallenges } from "@/hooks/useChallenges";
 
 const NAV_LINKS: { href: string; label: string; authOnly?: boolean }[] = [
   { href: "/play",        label: "Play" },
@@ -20,6 +21,8 @@ export default function Navbar() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { received } = useChallenges();
+  const pendingCount = user ? received.length : 0;
 
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
   useEffect(() => {
@@ -49,10 +52,15 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-1">
           {NAV_LINKS.filter((link) => !link.authOnly || user).map((link) => (
             <Link key={link.href} href={link.href}
-              className={clsx("px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
+              className={clsx("relative px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
                 pathname === link.href ? "bg-amber-500/15 text-amber-400" : "text-gray-400 hover:text-gray-100 hover:bg-white/[0.06]"
               )}>
               {link.label}
+              {link.href === "/challenges" && pendingCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-amber-500 text-black text-[10px] font-black rounded-full flex items-center justify-center leading-none">
+                  {pendingCount > 9 ? "9+" : pendingCount}
+                </span>
+              )}
             </Link>
           ))}
         </div>

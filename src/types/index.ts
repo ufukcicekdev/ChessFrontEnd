@@ -103,6 +103,13 @@ export interface GameStateMessage extends WSMessage {
   black_player?: string;
 }
 
+export interface TournamentParticipant {
+  username: string;
+  rating: number;
+  title?: string;
+  seed: number;
+}
+
 export interface TournamentMatch {
   match_number: number;
   player1_username: string | null;
@@ -131,5 +138,6 @@ export interface Tournament {
   created_at: string;
   started_at: string | null;
   participant_count: number;
+  participants: TournamentParticipant[];
   rounds: TournamentRound[];
 }

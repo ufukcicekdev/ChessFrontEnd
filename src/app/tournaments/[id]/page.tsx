@@ -5,6 +5,7 @@ import { Tournament } from "@/types";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/api";
 import TournamentBracket from "@/components/tournament/TournamentBracket";
+import Link from "next/link";
 
 export default function TournamentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -46,11 +47,11 @@ export default function TournamentDetailPage() {
   if (!tournament) return <div className="flex justify-center pt-24 text-red-400">Not found.</div>;
 
   const isCreator = user?.username === tournament.created_by?.username;
-  const isParticipant = tournament.rounds.some((r) =>
-    r.matches.some(
-      (m) => m.player1_username === user?.username || m.player2_username === user?.username
-    )
-  );
+  const isParticipant =
+    tournament.participants.some((p) => p.username === user?.username) ||
+    tournament.rounds.some((r) =>
+      r.matches.some((m) => m.player1_username === user?.username || m.player2_username === user?.username)
+    );
 
   return (
     <div className="max-w-5xl mx-auto px-4 pt-24 pb-16 flex flex-col gap-8">
@@ -86,6 +87,41 @@ export default function TournamentDetailPage() {
         </div>
       )}
 
+      {/* Katılımcı listesi */}
+      {tournament.participants.length > 0 && (
+        <div>
+          <h2 className="text-xl font-semibold mb-4">
+            Players
+            <span className="text-sm font-normal text-gray-500 ml-2">
+              {tournament.participant_count}/{tournament.max_players}
+            </span>
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {tournament.participants.map((p) => (
+              <Link
+                key={p.username}
+                href={`/profile/${p.username}`}
+                className="card-hover flex items-center gap-2 px-3 py-2"
+              >
+                <div className="w-7 h-7 rounded-full bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-xs font-bold text-amber-400 shrink-0">
+                  {p.username[0].toUpperCase()}
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{p.username}</p>
+                  <p className="text-xs text-gray-500 font-mono">{p.rating}</p>
+                </div>
+                {p.title && (
+                  <span className="text-[10px] text-gray-400 bg-white/[0.05] border border-white/[0.08] px-1 py-0.5 rounded shrink-0">
+                    {p.title}
+                  </span>
+                )}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Bracket */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Bracket</h2>
         <TournamentBracket
