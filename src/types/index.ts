@@ -116,6 +116,7 @@ export interface TournamentMatch {
   player2_username: string | null;
   winner_username: string | null;
   is_bye: boolean;
+  room_id: string | null;
 }
 
 export interface TournamentRound {
