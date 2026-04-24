@@ -9,6 +9,19 @@ import ToastContainer from "@/components/ui/Toast";
 import api from "@/lib/api";
 import { clsx } from "clsx";
 
+const TIME_CONTROLS = [
+  { label: "1+0",  tc: 60,   inc: 0 },
+  { label: "2+1",  tc: 120,  inc: 1 },
+  { label: "3+0",  tc: 180,  inc: 0 },
+  { label: "3+2",  tc: 180,  inc: 2 },
+  { label: "5+0",  tc: 300,  inc: 0 },
+  { label: "5+3",  tc: 300,  inc: 3 },
+  { label: "10+0", tc: 600,  inc: 0 },
+  { label: "10+5", tc: 600,  inc: 5 },
+  { label: "15+10",tc: 900,  inc: 10 },
+  { label: "30+0", tc: 1800, inc: 0 },
+];
+
 const STATUS_CONFIG: Record<string, { label: string; badge: string }> = {
   registration: { label: "Registration Open", badge: "badge-blue" },
   active:       { label: "In Progress",        badge: "badge-green" },
@@ -63,22 +76,33 @@ export default function TournamentsPage() {
             <p className="font-bold text-base">New Tournament</p>
             <input required value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="Tournament name" className="input" />
-            <div className="grid grid-cols-3 gap-3">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-gray-500 uppercase tracking-wider">Players</label>
-                <select value={form.max_players} onChange={(e) => setForm((f) => ({ ...f, max_players: +e.target.value }))} className="input py-2">
-                  {[4,8,16,32].map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-gray-500 uppercase tracking-wider">Time (min)</label>
-                <input type="number" min={1} value={form.time_control / 60}
-                  onChange={(e) => setForm((f) => ({ ...f, time_control: +e.target.value * 60 }))} className="input py-2" />
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs text-gray-500 uppercase tracking-wider">Inc (sec)</label>
-                <input type="number" min={0} value={form.increment}
-                  onChange={(e) => setForm((f) => ({ ...f, increment: +e.target.value }))} className="input py-2" />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-gray-500 uppercase tracking-wider">Players</label>
+              <select value={form.max_players} onChange={(e) => setForm((f) => ({ ...f, max_players: +e.target.value }))} className="input py-2">
+                {[4,8,16,32].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-gray-500 uppercase tracking-wider">Time Control</label>
+              <div className="flex flex-wrap gap-2">
+                {TIME_CONTROLS.map((opt) => {
+                  const active = form.time_control === opt.tc && form.increment === opt.inc;
+                  return (
+                    <button
+                      key={opt.label}
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, time_control: opt.tc, increment: opt.inc }))}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-mono font-semibold border transition-all ${
+                        active
+                          ? "bg-amber-500/20 border-amber-500/60 text-amber-400"
+                          : "bg-white/[0.04] border-white/[0.08] text-gray-400 hover:border-white/20 hover:text-gray-200"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <button type="submit" disabled={creating} className="btn-primary w-full">
