@@ -88,7 +88,12 @@ export default function TournamentDetailPage() {
 
       <div>
         <h2 className="text-xl font-semibold mb-4">Bracket</h2>
-        <TournamentBracket rounds={tournament.rounds} />
+        <TournamentBracket
+          rounds={tournament.rounds}
+          currentUsername={user?.username}
+          timeControl={tournament.time_control}
+          increment={tournament.increment}
+        />
       </div>
     </div>
   );

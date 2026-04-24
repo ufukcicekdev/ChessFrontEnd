@@ -37,6 +37,12 @@ export default function ProfilePage() {
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [withdrawLoading, setWithdrawLoading] = useState(false);
 
+  const [avatarSaving, setAvatarSaving] = useState(false);
+
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [passwordSaving, setPasswordSaving] = useState(false);
+
   const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
   const [withdrawalsLoading, setWithdrawalsLoading] = useState(true);
   const [rank, setRank] = useState<{ rank: number; total: number } | null>(null);
@@ -116,6 +122,43 @@ export default function ProfilePage() {
     }
   };
 
+  const saveAvatar = async (file: File) => {
+    setAvatarSaving(true);
+    try {
+      const form = new FormData();
+      form.append("avatar", file);
+      const { data } = await api.post("/api/users/avatar/", form, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setProfile((p) => p ? { ...p, avatar: data.avatar } : p);
+      add("Avatar updated.", "success");
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to upload avatar.";
+      add(msg, "error");
+    } finally {
+      setAvatarSaving(false);
+    }
+  };
+
+  const changePassword = async () => {
+    if (!currentPassword || !newPassword) return;
+    setPasswordSaving(true);
+    try {
+      await api.post("/api/users/change-password/", {
+        current_password: currentPassword,
+        new_password: newPassword,
+      });
+      setCurrentPassword("");
+      setNewPassword("");
+      add("Password changed. Please log in again.", "success");
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to change password.";
+      add(msg, "error");
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
   const requestWithdrawal = async () => {
     if (!withdrawAmount || parseFloat(withdrawAmount) <= 0) return;
     setWithdrawLoading(true);
@@ -156,8 +199,13 @@ export default function ProfilePage() {
 
           {/* Üst kart — kimlik */}
           <div className="card flex items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-3xl font-black text-amber-400 shrink-0">
-              {user.username[0].toUpperCase()}
+            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-3xl font-black text-amber-400 shrink-0 overflow-hidden">
+              {(user as unknown as { avatar?: string }).avatar ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={(user as unknown as { avatar: string }).avatar} alt="avatar" className="w-full h-full object-cover" />
+              ) : (
+                user.username[0].toUpperCase()
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
@@ -318,6 +366,68 @@ export default function ProfilePage() {
               </div>
             </div>
           )}
+
+          {/* Avatar & Password */}
+          <div className="card flex flex-col gap-4">
+            <h2 className="font-semibold text-base">Account Settings</h2>
+
+            {/* Avatar */}
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-2xl font-black text-amber-400 shrink-0 overflow-hidden">
+                {(user as unknown as { avatar?: string }).avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={(user as unknown as { avatar: string }).avatar} alt="avatar" className="w-full h-full object-cover" />
+                ) : (
+                  user.username[0].toUpperCase()
+                )}
+              </div>
+              <div className="flex flex-col gap-1.5 flex-1">
+                <label className="text-xs text-gray-400 font-medium">Profile Photo</label>
+                <label className={`btn-secondary text-xs px-4 py-2 cursor-pointer w-fit ${avatarSaving ? "opacity-50 pointer-events-none" : ""}`}>
+                  {avatarSaving ? "Uploading…" : "Choose Photo"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) saveAvatar(file);
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+                <p className="text-[10px] text-gray-600">JPG, PNG, WebP · Max 5 MB</p>
+              </div>
+            </div>
+
+            {/* Password change */}
+            <div className="border-t border-white/[0.06] pt-4 flex flex-col gap-2">
+              <label className="text-xs text-gray-400 font-medium">Change Password</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Current password"
+                className="input text-sm py-2"
+              />
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="New password (min 6 chars)"
+                  className="input flex-1 text-sm py-2"
+                />
+                <button
+                  onClick={changePassword}
+                  disabled={passwordSaving || !currentPassword || !newPassword}
+                  className="btn-secondary text-sm px-4"
+                >
+                  {passwordSaving ? "…" : "Change"}
+                </button>
+              </div>
+            </div>
+          </div>
 
           {/* Wallet */}
           <div className="card flex flex-col gap-4">

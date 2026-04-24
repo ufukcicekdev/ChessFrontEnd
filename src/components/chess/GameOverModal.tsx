@@ -49,6 +49,7 @@ export default function GameOverModal({
           username: opponent,
           time_control: timeControl,
           increment: increment ?? 0,
+          room_id: data.id,
         }).catch(() => {});
       }
       router.push(`/room/${data.id}`);
