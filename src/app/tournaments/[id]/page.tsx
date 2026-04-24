@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/api";
 import TournamentBracket from "@/components/tournament/TournamentBracket";
 import Link from "next/link";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 export default function TournamentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +19,7 @@ export default function TournamentDetailPage() {
   const [cancelling, setCancelling] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   const load = () =>
     api.get(`/api/tournaments/${id}/`)
@@ -48,7 +50,6 @@ export default function TournamentDetailPage() {
   };
 
   const cancel = async () => {
-    if (!confirm("Cancel this tournament?")) return;
     setCancelling(true); setError(null);
     try { await api.post(`/api/tournaments/${id}/cancel/`); router.push("/tournaments"); }
     catch (e: unknown) { setError((e as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Failed to cancel."); }
@@ -65,6 +66,17 @@ export default function TournamentDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 pt-24 pb-16 flex flex-col gap-8">
+      {confirmCancel && (
+        <ConfirmModal
+          title="Cancel Tournament"
+          message="This will permanently cancel the tournament. All registered players will be removed."
+          confirmLabel="Yes, Cancel"
+          cancelLabel="Go Back"
+          danger
+          onConfirm={() => { setConfirmCancel(false); cancel(); }}
+          onCancel={() => setConfirmCancel(false)}
+        />
+      )}
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div>
@@ -94,7 +106,7 @@ export default function TournamentDetailPage() {
               <button onClick={start} disabled={starting || tournament.participant_count < 2} className="btn-primary">
                 {starting ? "Starting…" : "Start Tournament"}
               </button>
-              <button onClick={cancel} disabled={cancelling} className="btn-danger text-sm">
+              <button onClick={() => setConfirmCancel(true)} disabled={cancelling} className="btn-danger text-sm">
                 {cancelling ? "…" : "Cancel"}
               </button>
             </>
