@@ -170,7 +170,7 @@ export default function PublicProfilePage() {
               ⚔ Challenge
             </Link>
           )}
-          <Link href={`/history`} className="btn-secondary flex-1 text-center text-sm">
+          <Link href={`/history?username=${profile.username}`} className="btn-secondary flex-1 text-center text-sm">
             Game History
           </Link>
           <Link href="/leaderboard" className="btn-secondary flex-1 text-center text-sm">

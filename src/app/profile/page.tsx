@@ -334,7 +334,7 @@ export default function ProfilePage() {
             <div className="card flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <h2 className="font-semibold text-base">Recent Games</h2>
-                <Link href="/history" className="text-xs text-amber-400 hover:underline">All games →</Link>
+                <Link href={`/history?username=${user.username}`} className="text-xs text-amber-400 hover:underline">All games →</Link>
               </div>
               <div className="flex flex-col gap-2">
                 {recentGames.map((g) => {

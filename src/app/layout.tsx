@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/ui/Navbar";
 import ChallengeNotification from "@/components/ChallengeNotification";
+import { ChallengesProvider } from "@/context/ChallengesContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -30,9 +31,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="dark">
       <body className={inter.className}>
-        <Navbar />
-        <main>{children}</main>
-        <ChallengeNotification />
+        <ChallengesProvider>
+          <Navbar />
+          <main>{children}</main>
+          <ChallengeNotification />
+        </ChallengesProvider>
       </body>
     </html>
   );
