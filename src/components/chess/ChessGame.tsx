@@ -78,15 +78,28 @@ export default function ChessGame({
   // ── Pre-move state (declared here so premoveFen can reference it) ───────────
   const [premove, setPremove] = useState<{ from: Square; to: Square } | null>(null);
   const [premoveFrom, setPremoveFrom] = useState<Square | null>(null);
+  // Ref tracks the premove to execute — separate from visual state to avoid stale render
+  const pendingPremoveRef = useRef<{ from: Square; to: Square } | null>(null);
 
   const clearPremove = useCallback(() => {
     setPremove(null);
     setPremoveFrom(null);
+    pendingPremoveRef.current = null;
   }, []);
 
-  // Premove visual FEN: piece moved to destination but turn unchanged
+  // Keep ref in sync with state
+  useEffect(() => {
+    pendingPremoveRef.current = premove;
+  }, [premove]);
+
+  // Premove visual FEN: piece moved to destination, only shown during opponent's turn
+  // wsFenRef tracks last confirmed server FEN so we don't show stale premove on new position
+  const prevWsFenRef = useRef(ws.fen);
+  const wsFenChanged = prevWsFenRef.current !== ws.fen;
+  if (wsFenChanged) prevWsFenRef.current = ws.fen;
+
   const premoveFen = useMemo(() => {
-    if (!premove) return null;
+    if (!premove || wsFenChanged) return null; // hide during the frame ws.fen just updated
     try {
       const g = new Chess(ws.fen);
       const piece = g.get(premove.from);
@@ -96,15 +109,12 @@ export default function ChessGame({
       g.put(piece, premove.to);
       return g.fen();
     } catch { return null; }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [premove, ws.fen]);
 
-  const displayFen = premoveFen ?? optimisticFen ?? ws.fen;
+  const displayFen = optimisticFen ?? premoveFen ?? ws.fen;
 
-  const prevWsFenRef = useRef(ws.fen);
-  if (prevWsFenRef.current !== ws.fen) {
-    prevWsFenRef.current = ws.fen;
-    if (optimisticFen !== null) setOptimisticFen(null);
-  }
+  if (wsFenChanged && optimisticFen !== null) setOptimisticFen(null);
 
   const activeSide = useMemo<GameColor | null>(() => {
     if (ws.gameResult) return null;
@@ -212,17 +222,21 @@ export default function ChessGame({
     [displayFen, ws],
   );
 
-  // Execute pre-move when it becomes our turn
+  // Execute pre-move when it becomes our turn (read from ref to avoid stale closure)
   const prevIsMyTurnRef = useRef(isMyTurn);
   useEffect(() => {
     const wasMyTurn = prevIsMyTurnRef.current;
     prevIsMyTurnRef.current = isMyTurn;
 
-    if (isMyTurn && !wasMyTurn && premove) {
-      // Try to execute against the fresh server FEN (ws.fen, not optimistic)
-      const ok = commitMove(premove.from, premove.to, "q", ws.fen);
+    if (isMyTurn && !wasMyTurn) {
+      const pending = pendingPremoveRef.current;
       setPremove(null);
-      if (!ok) play("move"); // cancelled sound feedback
+      setPremoveFrom(null);
+      pendingPremoveRef.current = null;
+      if (pending) {
+        const ok = commitMove(pending.from, pending.to, "q", ws.fen);
+        if (!ok) play("move");
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isMyTurn]);
