@@ -295,13 +295,31 @@ export default function ChessGame({
         const myColor = effectiveColor === "white" ? "w" : "b";
         const piece = game.get(square);
 
+        // Build premove highlights: same style as normal move hints
+        const buildPremoveHighlights = (from: Square) => {
+          // Temporarily flip turn so chess.js generates moves for our color
+          const flipped = new Chess(ws.fen.replace(/ (w|b) /, myColor === "w" ? " b " : " w "));
+          const dests = flipped.moves({ square: from, verbose: true }).map((m) => m.to);
+          const hl: Record<string, object> = {
+            [from]: { background: "rgba(255,255,0,0.4)" },
+          };
+          dests.forEach((sq) => {
+            hl[sq] = {
+              background: game.get(sq as Square)
+                ? "radial-gradient(circle, rgba(255,0,0,0.4) 85%, transparent 85%)"
+                : "radial-gradient(circle, rgba(0,0,0,0.15) 25%, transparent 25%)",
+            };
+          });
+          return hl;
+        };
+
         if (premoveFrom) {
           if (piece && piece.color === myColor) {
             // Re-select origin
             setPremoveFrom(square);
             setPremove(null);
             pendingPremoveRef.current = null;
-            setOptionSquares({ [square]: { background: "rgba(100,180,255,0.45)" } });
+            setOptionSquares(buildPremoveHighlights(square));
           } else {
             // Confirm destination
             setPremove({ from: premoveFrom, to: square });
@@ -313,7 +331,7 @@ export default function ChessGame({
             setPremoveFrom(square);
             setPremove(null);
             pendingPremoveRef.current = null;
-            setOptionSquares({ [square]: { background: "rgba(100,180,255,0.45)" } });
+            setOptionSquares(buildPremoveHighlights(square));
           } else {
             clearPremove();
             setOptionSquares({});
