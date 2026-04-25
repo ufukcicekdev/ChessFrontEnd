@@ -3,27 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 
-// Compute premove hint squares by flipping the FEN turn so chess.js generates
-// pseudo-legal moves for the piece as if it were that side's turn.
-function getPremoveHints(fen: string, square: Square): Record<string, object> {
-  try {
-    const parts = fen.split(" ");
-    parts[1] = parts[1] === "w" ? "b" : "w"; // flip turn
-    parts[3] = "-"; // clear en-passant (may be invalid after flip)
-    const g = new Chess(parts.join(" "));
-    const moves = g.moves({ square, verbose: true });
-    if (!moves.length) return { [square]: { background: "rgba(255,255,0,0.35)" } };
-    const h: Record<string, object> = { [square]: { background: "rgba(255,255,0,0.35)" } };
-    moves.forEach((m) => {
-      h[m.to] = {
-        background: g.get(m.to)
-          ? "radial-gradient(circle, rgba(255,100,100,0.45) 85%, transparent 85%)"
-          : "radial-gradient(circle, rgba(0,0,0,0.18) 28%, transparent 28%)",
-      };
-    });
-    return h;
-  } catch { return {}; }
-}
+
 import { GameColor } from "@/types";
 import { useChessWebSocket } from "@/hooks/useChessWebSocket";
 import { useClock } from "@/hooks/useClock";
@@ -310,22 +290,20 @@ export default function ChessGame({
 
       if (!isMyTurn) {
         if (isSpectator) return;
-        // Pre-move click logic — always use ws.fen (real board), never premoveFen
+        // Premove click — always use ws.fen (real board)
         const game = new Chess(ws.fen);
         const myColor = effectiveColor === "white" ? "w" : "b";
         const piece = game.get(square);
 
         if (premoveFrom) {
           if (piece && piece.color === myColor) {
-            // Re-select: change premove origin to this piece
+            // Re-select origin
             setPremoveFrom(square);
             setPremove(null);
             pendingPremoveRef.current = null;
-            // Show hints for new piece (flip turn to compute pseudo-legal moves)
-            const hints = getPremoveHints(ws.fen, square);
-            setOptionSquares(hints);
+            setOptionSquares({ [square]: { background: "rgba(100,180,255,0.45)" } });
           } else {
-            // Set premove destination
+            // Confirm destination
             setPremove({ from: premoveFrom, to: square });
             setPremoveFrom(null);
             setOptionSquares({});
@@ -335,10 +313,8 @@ export default function ChessGame({
             setPremoveFrom(square);
             setPremove(null);
             pendingPremoveRef.current = null;
-            const hints = getPremoveHints(ws.fen, square);
-            setOptionSquares(hints);
+            setOptionSquares({ [square]: { background: "rgba(100,180,255,0.45)" } });
           } else {
-            // Clicked empty / opponent square with no premoveFrom → cancel
             clearPremove();
             setOptionSquares({});
           }
