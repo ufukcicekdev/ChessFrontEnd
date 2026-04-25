@@ -178,6 +178,35 @@ html.light .navbar-scrolled {
   border-bottom-color: var(--border) !important;
 }
 
+/* ── Light mode text overrides ──────────────────────────────────────────── */
+/* Tailwind hardcoded grays that don't adapt */
+html.light .text-white          { color: #111827 !important; }
+html.light .text-gray-100       { color: #1f2937 !important; }
+html.light .text-gray-200       { color: #374151 !important; }
+html.light .text-gray-300       { color: #4b5563 !important; }
+html.light .text-gray-400       { color: #6b7280 !important; }
+
+/* Hardcoded dark backgrounds used as text containers */
+html.light .bg-white\/\[0\.05\],
+html.light .bg-white\/\[0\.06\],
+html.light .bg-white\/\[0\.08\],
+html.light .bg-white\/\[0\.09\] {
+  background: var(--bg-surface) !important;
+  border-color: var(--border) !important;
+}
+
+/* Nav link active / hover states */
+html.light nav a.text-gray-400  { color: #374151 !important; }
+html.light nav a:hover          { color: #111827 !important; }
+
+/* Sidebar / card text */
+html.light .text-gray-500       { color: #6b7280 !important; }
+
+/* Mobile menu glass panel */
+html.light .glass {
+  background: rgba(240,236,227,0.95) !important;
+}
+
 /* ── Animations ─────────────────────────────────────────────────────────── */
 @keyframes float {
   0%, 100% { transform: translateY(0px); }

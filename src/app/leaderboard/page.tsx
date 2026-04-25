@@ -34,6 +34,7 @@ interface ChallengeModalProps {
 function ChallengeModal({ target, onClose, features }: ChallengeModalProps) {
   const router = useRouter();
   const [selected, setSelected] = useState(TIME_OPTIONS[4]);
+  const [color, setColor] = useState<"white" | "black" | "random">("random");
   const [wager, setWager] = useState("");
   const [isPaid, setIsPaid] = useState(false);
   const [sending, setSending] = useState(false);
@@ -70,6 +71,7 @@ function ChallengeModal({ target, onClose, features }: ChallengeModalProps) {
         username: target.username,
         time_control: selected.tc,
         increment: selected.inc,
+        challenger_color: color,
         ...(isPaid && wager ? { wager_amount: parseFloat(wager) } : {}),
       });
       setChallengeId(data.id);
@@ -120,6 +122,28 @@ function ChallengeModal({ target, onClose, features }: ChallengeModalProps) {
                   onClick={() => setSelected(opt)}
                   className={`py-2 rounded-lg text-sm font-mono transition-all border ${
                     selected.label === opt.label
+                      ? "border-amber-500 bg-amber-500/20 text-amber-400"
+                      : "border-white/10 bg-white/[0.03] text-gray-400 hover:border-white/20"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Color picker */}
+            <p className="text-sm text-gray-400 mb-2">Play as:</p>
+            <div className="flex gap-2 mb-4">
+              {([
+                { value: "white", label: "⬜ White" },
+                { value: "random", label: "🎲 Random" },
+                { value: "black", label: "⬛ Black" },
+              ] as const).map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => setColor(opt.value)}
+                  className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all border ${
+                    color === opt.value
                       ? "border-amber-500 bg-amber-500/20 text-amber-400"
                       : "border-white/10 bg-white/[0.03] text-gray-400 hover:border-white/20"
                   }`}
