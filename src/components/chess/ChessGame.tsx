@@ -58,9 +58,20 @@ function getPremoveSquares(fen: string, from: Square): Square[] {
     case "p": {
       const dir = piece.color === "w" ? 1 : -1;
       const startRank = piece.color === "w" ? 1 : 6;
-      [[-1, dir], [1, dir]].forEach(([df, dr]) => { const s = toSquare(fileIdx + df, rankIdx + dr); if (s) squares.push(s); });
+      // Diagonal: only if enemy piece is there
+      [[-1, dir], [1, dir]].forEach(([df, dr]) => {
+        const s = toSquare(fileIdx + df, rankIdx + dr);
+        if (s) { const p = game.get(s); if (p && p.color !== piece.color) squares.push(s); }
+      });
+      // Forward: only if square is empty
       const fwd1 = toSquare(fileIdx, rankIdx + dir);
-      if (fwd1) { squares.push(fwd1); if (rankIdx === startRank) { const fwd2 = toSquare(fileIdx, rankIdx + dir * 2); if (fwd2) squares.push(fwd2); } }
+      if (fwd1 && !game.get(fwd1)) {
+        squares.push(fwd1);
+        if (rankIdx === startRank) {
+          const fwd2 = toSquare(fileIdx, rankIdx + dir * 2);
+          if (fwd2 && !game.get(fwd2)) squares.push(fwd2);
+        }
+      }
       break;
     }
     case "n":
@@ -401,7 +412,8 @@ export default function ChessGame({
           setSelectedSquare(null);
           return;
         }
-        const move = game.move({ from: selectedSquare, to: square, promotion: "q" });
+        let move = null;
+        try { move = game.move({ from: selectedSquare, to: square, promotion: "q" }); } catch { /* illegal */ }
         if (move) {
           ws.sendMove(move.from + move.to + (move.promotion ?? ""), move.san, game.fen());
           setOptimisticFen(game.fen());
