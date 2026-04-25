@@ -198,56 +198,67 @@ export default function ProfilePage() {
         <div className="max-w-3xl mx-auto flex flex-col gap-6">
 
           {/* Üst kart — kimlik */}
-          <div className="card flex items-center gap-5">
-            <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-3xl font-black text-amber-400 shrink-0 overflow-hidden">
-              {(user as unknown as { avatar?: string }).avatar ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={(user as unknown as { avatar: string }).avatar} alt="avatar" className="w-full h-full object-cover" />
-              ) : (
-                user.username[0].toUpperCase()
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl font-bold">{user.username}</h1>
-                {user.title && (
-                  <span className="text-xs font-semibold bg-white/[0.06] border border-white/[0.08] px-2 py-0.5 rounded text-gray-300">
-                    {user.title}
-                  </span>
+          <div className="card flex flex-col gap-4">
+            <div className="flex items-center gap-4">
+              {/* Avatar */}
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-3xl font-black text-amber-400 shrink-0 overflow-hidden">
+                {(user as unknown as { avatar?: string }).avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={(user as unknown as { avatar: string }).avatar} alt="avatar" className="w-full h-full object-cover" />
+                ) : (
+                  user.username[0].toUpperCase()
                 )}
               </div>
-              <p className="text-gray-400 text-sm mt-0.5">{user.email}</p>
-              {(user as unknown as { username_cooldown_days?: number }).username_cooldown_days ? (
-                <p className="text-xs text-amber-400/80 mt-2">
-                  Username can be changed in {(user as unknown as { username_cooldown_days: number }).username_cooldown_days} day(s).
-                </p>
-              ) : (
-                <div className="flex items-center gap-2 mt-2">
-                  <input
-                    type="text"
-                    value={newUsername}
-                    onChange={(e) => setNewUsername(e.target.value)}
-                    placeholder="New username…"
-                    className="input text-xs py-1.5 px-2 w-36"
-                    onKeyDown={(e) => e.key === "Enter" && saveUsername()}
-                  />
-                  <button
-                    onClick={saveUsername}
-                    disabled={usernameSaving || !newUsername.trim()}
-                    className="btn-secondary text-xs px-3 py-1.5"
-                  >
-                    {usernameSaving ? "…" : "Change"}
-                  </button>
+
+              {/* Name + email */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-xl font-bold truncate">{user.username}</h1>
+                  {user.title && (
+                    <span className="text-xs font-semibold bg-white/[0.06] border border-white/[0.08] px-2 py-0.5 rounded text-gray-300 shrink-0">
+                      {user.title}
+                    </span>
+                  )}
                 </div>
-              )}
-            </div>
-            <div className="flex flex-col items-end gap-2 shrink-0">
-              <div className="text-right">
+                <p className="text-gray-400 text-sm mt-0.5 truncate">{user.email}</p>
+              </div>
+
+              {/* Rating */}
+              <div className="text-right shrink-0">
                 <p className="text-2xl font-black font-mono text-amber-400">{user.rating}</p>
                 <p className="text-xs text-gray-500">Rating</p>
               </div>
+            </div>
+
+            {/* Username change + rank row */}
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex-1 min-w-0">
+                {(user as unknown as { username_cooldown_days?: number }).username_cooldown_days ? (
+                  <p className="text-xs text-amber-400/80">
+                    Username can be changed in {(user as unknown as { username_cooldown_days: number }).username_cooldown_days} day(s).
+                  </p>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newUsername}
+                      onChange={(e) => setNewUsername(e.target.value)}
+                      placeholder="New username…"
+                      className="input text-xs py-1.5 px-2 flex-1 min-w-0"
+                      onKeyDown={(e) => e.key === "Enter" && saveUsername()}
+                    />
+                    <button
+                      onClick={saveUsername}
+                      disabled={usernameSaving || !newUsername.trim()}
+                      className="btn-secondary text-xs px-3 py-1.5 shrink-0"
+                    >
+                      {usernameSaving ? "…" : "Change"}
+                    </button>
+                  </div>
+                )}
+              </div>
               {rank && (
-                <div className="text-right">
+                <div className="text-right shrink-0">
                   <p className="text-sm font-bold font-mono text-gray-300">
                     #{rank.rank}
                     <span className="text-gray-600 text-xs font-normal"> / {rank.total}</span>

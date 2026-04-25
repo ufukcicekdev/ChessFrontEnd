@@ -42,8 +42,6 @@ export default function ChessGame({
   timeControl,
   increment,
 }: ChessGameProps) {
-  // Always connect with token if available.
-  // Room REST data can be stale (e.g. players not assigned yet), so we derive role from WS state.
   const ws = useChessWebSocket(roomId, token);
   const { enabled: soundEnabled, toggle: toggleSound } = useSoundSetting();
   const { play } = useChessSound(soundEnabled);
@@ -74,19 +72,16 @@ export default function ChessGame({
 
   const isSpectator = effectiveColor === "spectator";
 
-  // Optimistic FEN: set immediately on our move, cleared when server confirms (ws.fen changes)
+  // Optimistic FEN: set immediately on our move, cleared when server confirms
   const [optimisticFen, setOptimisticFen] = useState<string | null>(null);
   const displayFen = optimisticFen ?? ws.fen;
 
   const prevWsFenRef = useRef(ws.fen);
   if (prevWsFenRef.current !== ws.fen) {
     prevWsFenRef.current = ws.fen;
-    // Server sent a new position (our move confirmed OR opponent moved) — clear everything
     if (optimisticFen !== null) setOptimisticFen(null);
-    // Clear selection inline (safe during render since these are independent state)
   }
 
-  // Determine whose turn it is from FEN
   const activeSide = useMemo<GameColor | null>(() => {
     if (ws.gameResult) return null;
     return displayFen.split(" ")[1] === "w" ? "white" : "black";
@@ -95,7 +90,7 @@ export default function ChessGame({
   const { whiteTime, blackTime, formatTime } = useClock(
     ws.whiteTime,
     ws.blackTime,
-    activeSide
+    activeSide,
   );
 
   const timeLossSentRef = useRef(false);
@@ -118,14 +113,13 @@ export default function ChessGame({
     }
   }, [activeSide, blackTime, isSpectator, whiteTime, ws]);
 
-  // Sound effects — keyed only on pgn so we fire exactly once per move
+  // Sound effects
   useEffect(() => {
     if (ws.pgn === prevPgnRef.current) return;
     const isFirst = prevPgnRef.current === "";
     prevPgnRef.current = ws.pgn;
-    if (isFirst) return; // skip initial state load
+    if (isFirst) return;
     const lastToken = ws.pgn.trim().split(/\s+/).pop() ?? "";
-    // SAN: "+" → check, "x" → capture
     if (lastToken.includes("+") || lastToken.includes("#")) play("check");
     else if (lastToken.includes("x")) play("capture");
     else play("move");
@@ -151,15 +145,24 @@ export default function ChessGame({
   const pendingPromoRef = useRef<{ from: Square; to: Square } | null>(null);
   const isDragging = useRef(false);
 
+  // ── Pre-move state ──────────────────────────────────────────────────────────
+  const [premove, setPremove] = useState<{ from: Square; to: Square } | null>(null);
+  const [premoveFrom, setPremoveFrom] = useState<Square | null>(null);
+
+  const clearPremove = useCallback(() => {
+    setPremove(null);
+    setPremoveFrom(null);
+  }, []);
+
   const isMyTurn =
     !isSpectator &&
     ((effectiveColor === "white" && activeSide === "white") ||
       (effectiveColor === "black" && activeSide === "black"));
 
   const isPromotionMove = useCallback(
-    (from: Square, to: Square): boolean => {
+    (from: Square, to: Square, fen = displayFen): boolean => {
       try {
-        const game = new Chess(displayFen);
+        const game = new Chess(fen);
         const piece = game.get(from);
         if (!piece || piece.type !== "p") return false;
         return (piece.color === "w" && to[1] === "8") || (piece.color === "b" && to[1] === "1");
@@ -171,9 +174,9 @@ export default function ChessGame({
   );
 
   const commitMove = useCallback(
-    (from: Square, to: Square, promotion: "q" | "r" | "b" | "n") => {
+    (from: Square, to: Square, promotion: "q" | "r" | "b" | "n", fen = displayFen) => {
       try {
-        const game = new Chess(displayFen);
+        const game = new Chess(fen);
         const move = game.move({ from, to, promotion });
         if (!move) return false;
         ws.sendMove(move.from + move.to + (move.promotion ?? ""), move.san, game.fen());
@@ -188,11 +191,38 @@ export default function ChessGame({
     [displayFen, ws],
   );
 
+  // Execute pre-move when it becomes our turn
+  const prevIsMyTurnRef = useRef(isMyTurn);
+  useEffect(() => {
+    const wasMyTurn = prevIsMyTurnRef.current;
+    prevIsMyTurnRef.current = isMyTurn;
+
+    if (isMyTurn && !wasMyTurn && premove) {
+      // Try to execute against the fresh server FEN (ws.fen, not optimistic)
+      const ok = commitMove(premove.from, premove.to, "q", ws.fen);
+      setPremove(null);
+      if (!ok) play("move"); // cancelled sound feedback
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isMyTurn]);
+
   const onDrop = useCallback(
     (sourceSquare: Square, targetSquare: Square) => {
-      if (!isMyTurn) return false;
       isDragging.current = true;
       setTimeout(() => { isDragging.current = false; }, 100);
+
+      if (!isMyTurn) {
+        // Queue as pre-move (validate piece belongs to us)
+        if (isSpectator) return false;
+        const game = new Chess(ws.fen);
+        const piece = game.get(sourceSquare);
+        const myColor = effectiveColor === "white" ? "w" : "b";
+        if (!piece || piece.color !== myColor) return false;
+        setPremove({ from: sourceSquare, to: targetSquare });
+        setPremoveFrom(null);
+        return true;
+      }
+
       if (isPromotionMove(sourceSquare, targetSquare)) {
         pendingPromoRef.current = { from: sourceSquare, to: targetSquare };
         setPromotionTo(targetSquare);
@@ -200,7 +230,7 @@ export default function ChessGame({
       }
       return commitMove(sourceSquare, targetSquare, "q");
     },
-    [isMyTurn, isPromotionMove, commitMove],
+    [isMyTurn, isSpectator, isPromotionMove, commitMove, effectiveColor, ws.fen],
   );
 
   const onPromotionPieceSelect = useCallback(
@@ -217,8 +247,32 @@ export default function ChessGame({
 
   const onSquareClick = useCallback(
     (square: Square) => {
-      if (!isMyTurn) return;
       if (isDragging.current) return;
+
+      if (!isMyTurn) {
+        if (isSpectator) return;
+        // Pre-move click logic
+        const game = new Chess(ws.fen);
+        const myColor = effectiveColor === "white" ? "w" : "b";
+        const piece = game.get(square);
+
+        if (premoveFrom) {
+          if (piece && piece.color === myColor) {
+            // Re-select own piece as new premove origin
+            setPremoveFrom(square);
+          } else {
+            setPremove({ from: premoveFrom, to: square });
+            setPremoveFrom(null);
+          }
+        } else {
+          if (piece && piece.color === myColor) {
+            setPremoveFrom(square);
+          }
+        }
+        return;
+      }
+
+      // Normal turn logic
       const game = new Chess(displayFen);
 
       if (selectedSquare) {
@@ -259,8 +313,15 @@ export default function ChessGame({
       setOptionSquares(highlights);
       setSelectedSquare(square);
     },
-    [isMyTurn, displayFen, selectedSquare, ws]
+    [isMyTurn, isSpectator, displayFen, selectedSquare, ws, isPromotionMove, premoveFrom, effectiveColor],
   );
+
+  // Right-click = cancel premove
+  const onSquareRightClick = useCallback(() => {
+    clearPremove();
+    setOptionSquares({});
+    setSelectedSquare(null);
+  }, [clearPremove]);
 
   const lastMoveHighlight = useMemo(() => {
     if (!ws.lastMove) return {};
@@ -285,14 +346,23 @@ export default function ChessGame({
             piece?.type === "k" &&
             piece?.color === (activeSide === "white" ? "w" : "b")
         )?.square;
-
-      return kingSquare
-        ? { [kingSquare]: { background: "rgba(239,68,68,0.55)" } }
-        : {};
+      return kingSquare ? { [kingSquare]: { background: "rgba(239,68,68,0.55)" } } : {};
     } catch {
       return {};
     }
   }, [activeSide, displayFen, ws.isCheck]);
+
+  // Pre-move highlight (cyan)
+  const premoveHighlight = useMemo(() => {
+    const squares: Record<string, object> = {};
+    const color = "rgba(100,200,255,0.55)";
+    if (premoveFrom) squares[premoveFrom] = { background: color };
+    if (premove) {
+      squares[premove.from] = { background: color };
+      squares[premove.to] = { background: "rgba(100,200,255,0.35)" };
+    }
+    return squares;
+  }, [premove, premoveFrom]);
 
   const boardOrientation = effectiveColor === "black" ? "black" : "white";
 
@@ -315,9 +385,10 @@ export default function ChessGame({
             position={displayFen}
             onPieceDrop={onDrop}
             onSquareClick={onSquareClick}
+            onSquareRightClick={onSquareRightClick}
             boardOrientation={boardOrientation}
-            customSquareStyles={{ ...lastMoveHighlight, ...checkHighlight, ...optionSquares }}
-            arePiecesDraggable={isMyTurn}
+            customSquareStyles={{ ...lastMoveHighlight, ...checkHighlight, ...optionSquares, ...premoveHighlight }}
+            arePiecesDraggable={!isSpectator}
             customDarkSquareStyle={{ backgroundColor: theme.dark }}
             customLightSquareStyle={{ backgroundColor: theme.light }}
             showPromotionDialog={!!promotionTo}
@@ -329,6 +400,12 @@ export default function ChessGame({
           {isSpectator && (
             <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
               👁 Spectating
+            </div>
+          )}
+
+          {premove && (
+            <div className="absolute bottom-2 left-2 bg-black/70 text-cyan-300 text-xs px-2 py-1 rounded">
+              Pre-move set · Right-click to cancel
             </div>
           )}
         </div>
@@ -344,7 +421,6 @@ export default function ChessGame({
 
       {/* Sidebar */}
       <div className="flex flex-col gap-3 w-full lg:w-64">
-        {/* Connection status */}
         <div className="card text-xs text-center">
           <span
             className={
@@ -359,7 +435,6 @@ export default function ChessGame({
           </span>
         </div>
 
-        {/* Draw offer banner */}
         {ws.drawOffer && !isSpectator && ws.drawOffer.from !== effectiveColor && (
           <DrawOfferBanner
             onAccept={ws.acceptDraw}
@@ -367,7 +442,6 @@ export default function ChessGame({
           />
         )}
 
-        {/* Controls */}
         {!isSpectator && !ws.gameResult && (
           <div className="flex flex-col gap-2">
             <div className="flex gap-2">
@@ -399,7 +473,6 @@ export default function ChessGame({
 
         <MoveHistory pgn={ws.pgn} />
 
-        {/* Settings row */}
         <div className="flex gap-2">
           <button
             onClick={cycleTheme}
@@ -419,7 +492,6 @@ export default function ChessGame({
 
         {isSpectator && <DonateButton roomId={roomId} />}
 
-        {/* Opponent disconnect banner */}
         {ws.opponentDisconnected && !ws.gameResult && (
           <div className="card border-amber-500/40 bg-amber-500/10 text-center flex flex-col gap-1">
             <p className="text-amber-400 text-xs font-semibold">Opponent disconnected</p>

@@ -92,6 +92,8 @@ export interface GameStateMessage extends WSMessage {
   move_number: number;
   white_time: number;
   black_time: number;
+  last_move_at?: string | null;
+  server_time?: string;
   white_rating?: number | null;
   black_rating?: number | null;
   white_title?: string | null;

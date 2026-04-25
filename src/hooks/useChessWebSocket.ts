@@ -130,13 +130,26 @@ export function useChessWebSocket(
         const m = msg as GameStateMessage;
         const uci = m.last_move?.uci;
         const lastMove = uci ? { from: uci.slice(0, 2), to: uci.slice(2, 4) } : null;
+
+        // Correct for time elapsed since server wrote last_move_at.
+        // server_time is "now" on the server, last_move_at is when the clock last stopped.
+        // The difference = how long the active side's clock has been running since that snapshot.
+        let whiteTime = m.white_time;
+        let blackTime = m.black_time;
+        if (!m.is_game_over && m.last_move_at && m.server_time) {
+          const elapsed = (new Date(m.server_time).getTime() - new Date(m.last_move_at).getTime()) / 1000;
+          const activeSide = m.fen?.split(" ")[1] === "w" ? "white" : "black";
+          if (activeSide === "white") whiteTime = Math.max(0, whiteTime - elapsed);
+          else blackTime = Math.max(0, blackTime - elapsed);
+        }
+
         setState((s) => ({
           ...s,
           fen: m.fen,
           pgn: m.pgn,
           lastMove,
-          whiteTime: m.white_time,
-          blackTime: m.black_time,
+          whiteTime,
+          blackTime,
           isCheck: Boolean(m.is_check),
           gameResult: m.is_game_over ? (m.game_result ?? null) : null,
           whitePlayer: m.white_player ?? s.whitePlayer,
