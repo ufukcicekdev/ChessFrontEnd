@@ -56,6 +56,7 @@ export default function GameOverModal({
           room_id: data.id,
         }).catch(() => {});
       }
+      // navigate — no need to reset rematching, component unmounts
       router.push(`/room/${data.id}`);
     } catch {
       setRematching(false);
@@ -71,7 +72,8 @@ export default function GameOverModal({
     reason === "abandonment" ? "Opponent abandoned the game"
     : reason === "resignation" ? "Opponent resigned"
     : reason === "timeout" ? "Time out"
-    : result === "draw" ? "Draw by agreement"
+    : reason === "checkmate" ? "Checkmate"
+    : result === "draw" ? "Draw"
     : null;
 
   const isWinner =

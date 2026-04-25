@@ -74,7 +74,31 @@ export default function ChessGame({
 
   // Optimistic FEN: set immediately on our move, cleared when server confirms
   const [optimisticFen, setOptimisticFen] = useState<string | null>(null);
-  const displayFen = optimisticFen ?? ws.fen;
+
+  // ── Pre-move state (declared here so premoveFen can reference it) ───────────
+  const [premove, setPremove] = useState<{ from: Square; to: Square } | null>(null);
+  const [premoveFrom, setPremoveFrom] = useState<Square | null>(null);
+
+  const clearPremove = useCallback(() => {
+    setPremove(null);
+    setPremoveFrom(null);
+  }, []);
+
+  // Premove visual FEN: piece moved to destination but turn unchanged
+  const premoveFen = useMemo(() => {
+    if (!premove) return null;
+    try {
+      const g = new Chess(ws.fen);
+      const piece = g.get(premove.from);
+      if (!piece) return null;
+      g.remove(premove.from);
+      g.remove(premove.to);
+      g.put(piece, premove.to);
+      return g.fen();
+    } catch { return null; }
+  }, [premove, ws.fen]);
+
+  const displayFen = premoveFen ?? optimisticFen ?? ws.fen;
 
   const prevWsFenRef = useRef(ws.fen);
   if (prevWsFenRef.current !== ws.fen) {
@@ -144,15 +168,6 @@ export default function ChessGame({
   const [promotionTo, setPromotionTo] = useState<Square | null>(null);
   const pendingPromoRef = useRef<{ from: Square; to: Square } | null>(null);
   const isDragging = useRef(false);
-
-  // ── Pre-move state ──────────────────────────────────────────────────────────
-  const [premove, setPremove] = useState<{ from: Square; to: Square } | null>(null);
-  const [premoveFrom, setPremoveFrom] = useState<Square | null>(null);
-
-  const clearPremove = useCallback(() => {
-    setPremove(null);
-    setPremoveFrom(null);
-  }, []);
 
   const isMyTurn =
     !isSpectator &&
@@ -352,17 +367,6 @@ export default function ChessGame({
     }
   }, [activeSide, displayFen, ws.isCheck]);
 
-  // Pre-move highlight (cyan)
-  const premoveHighlight = useMemo(() => {
-    const squares: Record<string, object> = {};
-    const color = "rgba(100,200,255,0.55)";
-    if (premoveFrom) squares[premoveFrom] = { background: color };
-    if (premove) {
-      squares[premove.from] = { background: color };
-      squares[premove.to] = { background: "rgba(100,200,255,0.35)" };
-    }
-    return squares;
-  }, [premove, premoveFrom]);
 
   const boardOrientation = effectiveColor === "black" ? "black" : "white";
 
@@ -387,7 +391,7 @@ export default function ChessGame({
             onSquareClick={onSquareClick}
             onSquareRightClick={onSquareRightClick}
             boardOrientation={boardOrientation}
-            customSquareStyles={{ ...lastMoveHighlight, ...checkHighlight, ...optionSquares, ...premoveHighlight }}
+            customSquareStyles={{ ...lastMoveHighlight, ...checkHighlight, ...optionSquares }}
             arePiecesDraggable={!isSpectator}
             customDarkSquareStyle={{ backgroundColor: theme.dark }}
             customLightSquareStyle={{ backgroundColor: theme.light }}
