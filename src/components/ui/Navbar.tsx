@@ -5,6 +5,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useEffect, useState } from "react";
 import { clsx } from "clsx";
 import { useChallenges } from "@/hooks/useChallenges";
+import { useTheme } from "@/hooks/useTheme";
 
 const NAV_LINKS: { href: string; label: string; authOnly?: boolean }[] = [
   { href: "/play",        label: "Play" },
@@ -23,6 +24,7 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { received } = useChallenges();
   const pendingCount = user ? received.length : 0;
+  const { theme, toggle: toggleTheme } = useTheme();
 
   useEffect(() => { fetchProfile(); }, [fetchProfile]);
   useEffect(() => {
@@ -34,7 +36,7 @@ export default function Navbar() {
   return (
     <nav className={clsx(
       "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
-      scrolled ? "bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/[0.06] shadow-2xl shadow-black/50" : "bg-transparent"
+      scrolled ? "navbar-scrolled bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/[0.06] shadow-2xl shadow-black/50" : "bg-transparent"
     )}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2 shrink-0 group">
@@ -66,6 +68,13 @@ export default function Navbar() {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
+          <button
+            onClick={toggleTheme}
+            title={theme === "dark" ? "Light mode" : "Dark mode"}
+            className="btn-ghost text-base px-2 py-1.5 rounded-lg"
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
           {user ? (
             <div className="flex items-center gap-3">
               <Link href="/profile" className="flex items-center gap-2 bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-1.5 hover:bg-white/[0.09] transition-colors">
@@ -115,6 +124,9 @@ export default function Navbar() {
             </Link>
           ))}
           <div className="border-t border-white/[0.06] pt-2 mt-1 flex flex-col gap-2">
+            <button onClick={toggleTheme} className="btn-ghost text-sm text-left px-4 py-2.5">
+              {theme === "dark" ? "☀️ Light mode" : "🌙 Dark mode"}
+            </button>
             {user ? (
               <>
                 <Link href="/profile" onClick={() => setMobileOpen(false)} className="btn-secondary w-full text-sm text-center">

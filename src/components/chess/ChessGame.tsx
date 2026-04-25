@@ -137,12 +137,13 @@ export default function ChessGame({
     }
   }, [activeSide, blackTime, isSpectator, whiteTime, ws]);
 
-  // Sound effects
+  // Sound effects — only for opponent's moves (our moves play sound in commitMove immediately)
   useEffect(() => {
     if (ws.pgn === prevPgnRef.current) return;
     const isFirst = prevPgnRef.current === "";
     prevPgnRef.current = ws.pgn;
     if (isFirst) return;
+    if (!isMyTurn) return; // isMyTurn is NOW true → means opponent just moved
     const lastToken = ws.pgn.trim().split(/\s+/).pop() ?? "";
     if (lastToken.includes("+") || lastToken.includes("#")) play("check");
     else if (lastToken.includes("x")) play("capture");
@@ -198,6 +199,11 @@ export default function ChessGame({
         setOptimisticFen(game.fen());
         setOptionSquares({});
         setSelectedSquare(null);
+        // Play sound immediately — don't wait for server confirmation
+        const san = move.san;
+        if (san.includes("+") || san.includes("#")) play("check");
+        else if (san.includes("x")) play("capture");
+        else play("move");
         return true;
       } catch {
         return false;
