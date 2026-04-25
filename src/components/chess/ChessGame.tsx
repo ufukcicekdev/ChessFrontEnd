@@ -2,6 +2,28 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chessboard } from "react-chessboard";
 import { Chess, Square } from "chess.js";
+
+// Compute premove hint squares by flipping the FEN turn so chess.js generates
+// pseudo-legal moves for the piece as if it were that side's turn.
+function getPremoveHints(fen: string, square: Square): Record<string, object> {
+  try {
+    const parts = fen.split(" ");
+    parts[1] = parts[1] === "w" ? "b" : "w"; // flip turn
+    parts[3] = "-"; // clear en-passant (may be invalid after flip)
+    const g = new Chess(parts.join(" "));
+    const moves = g.moves({ square, verbose: true });
+    if (!moves.length) return { [square]: { background: "rgba(255,255,0,0.35)" } };
+    const h: Record<string, object> = { [square]: { background: "rgba(255,255,0,0.35)" } };
+    moves.forEach((m) => {
+      h[m.to] = {
+        background: g.get(m.to)
+          ? "radial-gradient(circle, rgba(255,100,100,0.45) 85%, transparent 85%)"
+          : "radial-gradient(circle, rgba(0,0,0,0.18) 28%, transparent 28%)",
+      };
+    });
+    return h;
+  } catch { return {}; }
+}
 import { GameColor } from "@/types";
 import { useChessWebSocket } from "@/hooks/useChessWebSocket";
 import { useClock } from "@/hooks/useClock";
@@ -12,6 +34,7 @@ import DrawOfferBanner from "./DrawOfferBanner";
 import DonateButton from "./DonateButton";
 import { useChessSound } from "@/hooks/useChessSound";
 import { useSoundSetting } from "@/hooks/useSoundSetting";
+import ConfirmModal from "@/components/ui/ConfirmModal";
 
 interface ChessGameProps {
   roomId: string;
@@ -255,6 +278,7 @@ export default function ChessGame({
         if (!piece || piece.color !== myColor) return false;
         setPremove({ from: sourceSquare, to: targetSquare });
         setPremoveFrom(null);
+        setOptionSquares({});
         return true;
       }
 
@@ -286,22 +310,37 @@ export default function ChessGame({
 
       if (!isMyTurn) {
         if (isSpectator) return;
-        // Pre-move click logic
+        // Pre-move click logic — always use ws.fen (real board), never premoveFen
         const game = new Chess(ws.fen);
         const myColor = effectiveColor === "white" ? "w" : "b";
         const piece = game.get(square);
 
         if (premoveFrom) {
           if (piece && piece.color === myColor) {
-            // Re-select own piece as new premove origin
+            // Re-select: change premove origin to this piece
             setPremoveFrom(square);
+            setPremove(null);
+            pendingPremoveRef.current = null;
+            // Show hints for new piece (flip turn to compute pseudo-legal moves)
+            const hints = getPremoveHints(ws.fen, square);
+            setOptionSquares(hints);
           } else {
+            // Set premove destination
             setPremove({ from: premoveFrom, to: square });
             setPremoveFrom(null);
+            setOptionSquares({});
           }
         } else {
           if (piece && piece.color === myColor) {
             setPremoveFrom(square);
+            setPremove(null);
+            pendingPremoveRef.current = null;
+            const hints = getPremoveHints(ws.fen, square);
+            setOptionSquares(hints);
+          } else {
+            // Clicked empty / opponent square with no premoveFrom → cancel
+            clearPremove();
+            setOptionSquares({});
           }
         }
         return;
@@ -351,12 +390,13 @@ export default function ChessGame({
     [isMyTurn, isSpectator, displayFen, selectedSquare, ws, isPromotionMove, premoveFrom, effectiveColor],
   );
 
-  // Right-click = cancel premove
+  // Right-click = cancel everything
   const onSquareRightClick = useCallback(() => {
     clearPremove();
     setOptionSquares({});
     setSelectedSquare(null);
   }, [clearPremove]);
+
 
   const lastMoveHighlight = useMemo(() => {
     if (!ws.lastMove) return {};
@@ -427,11 +467,6 @@ export default function ChessGame({
             </div>
           )}
 
-          {premove && (
-            <div className="absolute bottom-2 left-2 bg-black/70 text-cyan-300 text-xs px-2 py-1 rounded">
-              Pre-move set · Right-click to cancel
-            </div>
-          )}
         </div>
 
         <PlayerCard
@@ -441,6 +476,18 @@ export default function ChessGame({
           time={formatTime(whiteTime)}
           isActive={activeSide === "white"}
         />
+
+        {/* Resign / Draw — mobile only (below board) */}
+        {!isSpectator && !ws.gameResult && (
+          <div className="flex gap-2 lg:hidden">
+            <button onClick={() => setConfirmResign(true)} className="btn-danger flex-1 text-sm">
+              Resign
+            </button>
+            <button onClick={ws.offerDraw} className="btn-secondary flex-1 text-sm">
+              Draw
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Sidebar */}
@@ -466,32 +513,27 @@ export default function ChessGame({
           />
         )}
 
+        {confirmResign && (
+          <ConfirmModal
+            title="Resign"
+            message="Are you sure you want to resign?"
+            confirmLabel="Resign"
+            cancelLabel="Cancel"
+            danger
+            onConfirm={() => { ws.sendResign(); setConfirmResign(false); }}
+            onCancel={() => setConfirmResign(false)}
+          />
+        )}
+
+        {/* Resign / Draw — desktop only (sidebar) */}
         {!isSpectator && !ws.gameResult && (
-          <div className="flex flex-col gap-2">
-            <div className="flex gap-2">
-              {confirmResign ? (
-                <>
-                  <button
-                    onClick={() => { ws.sendResign(); setConfirmResign(false); }}
-                    className="btn-danger flex-1 text-sm"
-                  >
-                    Confirm
-                  </button>
-                  <button onClick={() => setConfirmResign(false)} className="btn-secondary flex-1 text-sm">
-                    Cancel
-                  </button>
-                </>
-              ) : (
-                <>
-                  <button onClick={() => setConfirmResign(true)} className="btn-danger flex-1 text-sm">
-                    Resign
-                  </button>
-                  <button onClick={ws.offerDraw} className="btn-secondary flex-1 text-sm">
-                    Draw
-                  </button>
-                </>
-              )}
-            </div>
+          <div className="hidden lg:flex gap-2">
+            <button onClick={() => setConfirmResign(true)} className="btn-danger flex-1 text-sm">
+              Resign
+            </button>
+            <button onClick={ws.offerDraw} className="btn-secondary flex-1 text-sm">
+              Draw
+            </button>
           </div>
         )}
 
