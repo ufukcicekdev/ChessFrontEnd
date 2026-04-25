@@ -26,6 +26,58 @@ interface ChessGameProps {
   increment?: number;
 }
 
+// Returns all squares a piece can physically reach for premove highlighting
+// (ignores legality — premove executes regardless of check/pin)
+function getPremoveSquares(fen: string, from: Square): Square[] {
+  const game = new Chess(fen);
+  const piece = game.get(from);
+  if (!piece) return [];
+
+  const fileIdx = from.charCodeAt(0) - 97; // a=0 … h=7
+  const rankIdx = parseInt(from[1]) - 1;   // 1=0 … 8=7
+
+  const toSquare = (f: number, r: number): Square | null => {
+    if (f < 0 || f > 7 || r < 0 || r > 7) return null;
+    return (String.fromCharCode(97 + f) + (r + 1)) as Square;
+  };
+
+  const squares: Square[] = [];
+
+  const addSliding = (dirs: [number, number][]) => {
+    for (const [df, dr] of dirs) {
+      let f = fileIdx + df, r = rankIdx + dr;
+      while (f >= 0 && f <= 7 && r >= 0 && r <= 7) {
+        squares.push((String.fromCharCode(97 + f) + (r + 1)) as Square);
+        if (game.get((String.fromCharCode(97 + f) + (r + 1)) as Square)) break; // blocked
+        f += df; r += dr;
+      }
+    }
+  };
+
+  switch (piece.type) {
+    case "p": {
+      const dir = piece.color === "w" ? 1 : -1;
+      const startRank = piece.color === "w" ? 1 : 6;
+      [[-1, dir], [1, dir]].forEach(([df, dr]) => { const s = toSquare(fileIdx + df, rankIdx + dr); if (s) squares.push(s); });
+      const fwd1 = toSquare(fileIdx, rankIdx + dir);
+      if (fwd1) { squares.push(fwd1); if (rankIdx === startRank) { const fwd2 = toSquare(fileIdx, rankIdx + dir * 2); if (fwd2) squares.push(fwd2); } }
+      break;
+    }
+    case "n":
+      [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([df,dr]) => { const s = toSquare(fileIdx+df, rankIdx+dr); if (s) squares.push(s); });
+      break;
+    case "b": addSliding([[-1,-1],[-1,1],[1,-1],[1,1]]); break;
+    case "r": addSliding([[-1,0],[1,0],[0,-1],[0,1]]); break;
+    case "q": addSliding([[-1,-1],[-1,1],[1,-1],[1,1],[-1,0],[1,0],[0,-1],[0,1]]); break;
+    case "k":
+      [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(([df,dr]) => { const s = toSquare(fileIdx+df, rankIdx+dr); if (s) squares.push(s); });
+      break;
+  }
+
+  // Filter out own pieces
+  return squares.filter((sq) => { const p = game.get(sq); return !p || p.color !== piece.color; });
+}
+
 const BOARD_THEMES = [
   { name: "Classic",  dark: "#b58863", light: "#f0d9b5" },
   { name: "Ocean",    dark: "#4a7fa5", light: "#d6e8f5" },
@@ -297,9 +349,7 @@ export default function ChessGame({
 
         // Build premove highlights: same style as normal move hints
         const buildPremoveHighlights = (from: Square) => {
-          // Temporarily flip turn so chess.js generates moves for our color
-          const flipped = new Chess(ws.fen.replace(/ (w|b) /, myColor === "w" ? " b " : " w "));
-          const dests = flipped.moves({ square: from, verbose: true }).map((m) => m.to);
+          const dests = getPremoveSquares(ws.fen, from);
           const hl: Record<string, object> = {
             [from]: { background: "rgba(255,255,0,0.4)" },
           };
