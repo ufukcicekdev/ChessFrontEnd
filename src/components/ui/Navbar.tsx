@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useEffect, useState } from "react";
@@ -40,14 +41,13 @@ export default function Navbar() {
     )}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2 shrink-0 group">
-          {/* O-O castling logo: king square + rook square */}
-          <div className="flex rounded-lg overflow-hidden shadow-lg shadow-amber-500/25 group-hover:scale-105 transition-transform border border-amber-500/30">
-            <div className="w-8 h-8 bg-amber-500 flex items-center justify-center text-gray-950 font-black text-base">♔</div>
-            <div className="w-8 h-8 bg-amber-600 flex items-center justify-center text-gray-950 font-black text-base">♖</div>
+          {/* fianchess knight emblem */}
+          <div className="w-9 h-9 rounded-full overflow-hidden border border-white/15 shadow-lg shadow-black/40 group-hover:scale-105 transition-transform bg-black">
+            <Image src="/fianchess-emblem.jpg" alt="fianchess" width={36} height={36} className="w-full h-full object-cover scale-[1.18]" priority />
           </div>
           <div className="flex items-baseline gap-0.5">
-            <span className="font-bold text-base tracking-tight text-white">chess</span>
-            <span className="font-black text-base tracking-widest text-amber-400 font-mono">O-O</span>
+            <span className="font-bold text-base tracking-tight text-white">fian</span>
+            <span className="font-black text-base tracking-tight text-amber-400">chess</span>
           </div>
         </Link>
 
@@ -79,7 +79,7 @@ export default function Navbar() {
             <div className="flex items-center gap-3">
               <Link href="/profile" className="flex items-center gap-2 bg-white/[0.05] border border-white/[0.08] rounded-xl px-3 py-1.5 hover:bg-white/[0.09] transition-colors">
                 <div className="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-xs font-bold text-amber-400">
-                  {user.username[0].toUpperCase()}
+                  {user.username?.[0]?.toUpperCase()}
                 </div>
                 <span className="text-sm font-medium">{user.username}</span>
                 {user.title && (

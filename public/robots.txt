@@ -3,4 +3,4 @@ Allow: /
 Disallow: /api/
 Disallow: /auth/
 
-Sitemap: https://chess0-0.com/sitemap.xml
+Sitemap: https://fianchess.com/sitemap.xml

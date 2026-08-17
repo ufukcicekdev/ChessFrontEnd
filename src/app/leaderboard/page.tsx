@@ -106,7 +106,7 @@ function ChallengeModal({ target, onClose, features }: ChallengeModalProps) {
           <>
             <div className="flex items-center gap-3 mb-5">
               <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center font-bold text-amber-400">
-                {target.username[0].toUpperCase()}
+                {target.username?.[0]?.toUpperCase()}
               </div>
               <div>
                 <p className="font-bold">{target.username}</p>
@@ -239,7 +239,7 @@ function LeaderboardContent() {
 
   return (
     <div className="min-h-screen bg-hero pt-24 pb-16 px-4">
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-black mb-2"><span className="gradient-text">Leaderboard</span></h1>
           <p className="text-gray-500 text-sm mb-6">Top players ranked by Elo rating</p>
@@ -267,7 +267,7 @@ function LeaderboardContent() {
                 <div key={p.id} className={`card flex flex-col items-center justify-end pb-4 pt-2 ${sizes[idx]}`}>
                   <div className="text-2xl mb-1">{MEDALS[rank]}</div>
                   <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/30 flex items-center justify-center font-bold text-amber-400 text-sm mb-1">
-                    {p.username[0].toUpperCase()}
+                    {p.username?.[0]?.toUpperCase()}
                   </div>
                   <p className="text-xs font-bold truncate max-w-full px-2">{p.username}</p>
                   <p className="text-xs font-mono text-amber-400">{p.rating}</p>
@@ -304,7 +304,7 @@ function LeaderboardContent() {
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-sm font-bold text-amber-400 shrink-0">
-                            {p.username[0].toUpperCase()}
+                            {p.username?.[0]?.toUpperCase()}
                           </div>
                           <Link href={`/profile/${p.username}`} className="font-semibold hover:text-amber-400 transition-colors">{p.username}</Link>
                           {isMe && <span className="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">you</span>}

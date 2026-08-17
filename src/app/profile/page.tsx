@@ -195,7 +195,7 @@ export default function ProfilePage() {
     <>
       <ToastContainer toasts={toasts} remove={remove} />
       <div className="min-h-screen pt-24 pb-16 px-4">
-        <div className="max-w-3xl mx-auto flex flex-col gap-6">
+        <div className="max-w-6xl mx-auto flex flex-col gap-6">
 
           {/* Üst kart — kimlik */}
           <div className="card flex flex-col gap-4">
@@ -206,7 +206,7 @@ export default function ProfilePage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={(user as unknown as { avatar: string }).avatar} alt="avatar" className="w-full h-full object-cover" />
                 ) : (
-                  user.username[0].toUpperCase()
+                  user.username?.[0]?.toUpperCase()
                 )}
               </div>
 
@@ -283,6 +283,9 @@ export default function ProfilePage() {
             ))}
           </div>
 
+          {/* Two-column layout on large screens */}
+          <div className="grid lg:grid-cols-2 gap-6 items-start">
+          <div className="flex flex-col gap-6">
           {/* İstatistikler */}
           <div className="card flex flex-col gap-4">
             {/* W / D / L sayılar */}
@@ -378,6 +381,9 @@ export default function ProfilePage() {
             </div>
           )}
 
+          </div>{/* left column */}
+
+          <div className="flex flex-col gap-6">
           {/* Avatar & Password */}
           <div className="card flex flex-col gap-4">
             <h2 className="font-semibold text-base">Account Settings</h2>
@@ -389,7 +395,7 @@ export default function ProfilePage() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={(user as unknown as { avatar: string }).avatar} alt="avatar" className="w-full h-full object-cover" />
                 ) : (
-                  user.username[0].toUpperCase()
+                  user.username?.[0]?.toUpperCase()
                 )}
               </div>
               <div className="flex flex-col gap-1.5 flex-1">
@@ -540,6 +546,8 @@ export default function ProfilePage() {
               </div>
             )}
           </div>
+          </div>{/* right column */}
+          </div>{/* two-column grid */}
 
         </div>
       </div>

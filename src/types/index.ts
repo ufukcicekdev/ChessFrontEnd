@@ -126,16 +126,19 @@ export interface TournamentRound {
   matches: TournamentMatch[];
 }
 
-export type TournamentStatus = "registration" | "active" | "finished" | "cancelled";
+export type TournamentStatus = "scheduled" | "registration" | "active" | "finished" | "cancelled";
 
 export interface Tournament {
   id: string;
   name: string;
   description: string;
-  max_players: number;
   time_control: number;
   increment: number;
   status: TournamentStatus;
+  is_private: boolean;
+  invite_code: string | null;
+  registration_start: string | null;
+  registration_end: string | null;
   created_by: User | null;
   winner: User | null;
   created_at: string;

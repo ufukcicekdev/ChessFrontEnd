@@ -23,7 +23,8 @@ const TIME_CONTROLS = [
 ];
 
 const STATUS_CONFIG: Record<string, { label: string; badge: string }> = {
-  registration: { label: "Registration Open", badge: "badge-blue" },
+  scheduled:    { label: "Scheduled",          badge: "badge-amber" },
+  registration: { label: "Registration Open",  badge: "badge-blue" },
   active:       { label: "In Progress",        badge: "badge-green" },
   finished:     { label: "Finished",           badge: "badge-gray" },
   cancelled:    { label: "Cancelled",          badge: "badge-gray" },
@@ -37,7 +38,12 @@ export default function TournamentsPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", max_players: 8, time_control: 300, increment: 0 });
+  const [form, setForm] = useState({
+    name: "", description: "", time_control: 300, increment: 0,
+    is_private: false, registration_start: "", registration_end: "",
+  });
+  const [joinCode, setJoinCode] = useState("");
+  const [joining, setJoining] = useState(false);
 
   const load = () =>
     api.get("/api/tournaments/").then(({ data }) => setTournaments(data.results ?? data)).finally(() => setLoading(false));
@@ -49,12 +55,39 @@ export default function TournamentsPage() {
     if (!user) { router.push("/auth/login"); return; }
     setCreating(true);
     try {
-      const { data } = await api.post("/api/tournaments/", form);
+      const payload: Record<string, unknown> = {
+        name: form.name,
+        description: form.description,
+        time_control: form.time_control,
+        increment: form.increment,
+        is_private: form.is_private,
+      };
+      // datetime-local -> ISO (only if provided)
+      if (form.registration_start) payload.registration_start = new Date(form.registration_start).toISOString();
+      if (form.registration_end) payload.registration_end = new Date(form.registration_end).toISOString();
+      const { data } = await api.post("/api/tournaments/", payload);
       router.push(`/tournaments/${data.id}`);
-    } catch {
-      add("Failed to create tournament.", "error");
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: Record<string, string[] | string> } })?.response?.data;
+      const first = msg && typeof msg === "object" ? Object.values(msg)[0] : null;
+      add(Array.isArray(first) ? first[0] : (first as string) ?? "Failed to create tournament.", "error");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const joinWithCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) { router.push("/auth/login"); return; }
+    if (!joinCode.trim()) return;
+    setJoining(true);
+    try {
+      const { data } = await api.post("/api/tournaments/join-by-code/", { code: joinCode.trim() });
+      router.push(`/tournaments/${data.tournament_id}`);
+    } catch (err: unknown) {
+      add((err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? "Could not join.", "error");
+    } finally {
+      setJoining(false);
     }
   };
 
@@ -67,9 +100,23 @@ export default function TournamentsPage() {
             <h1 className="text-4xl font-black mb-1"><span className="gradient-text">Tournaments</span></h1>
             <p className="text-gray-500 text-sm">Single-elimination bracket format</p>
           </div>
-          <button onClick={() => setShowForm(!showForm)} className="btn-primary">
-            {showForm ? "Cancel" : "+ Create Tournament"}
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <form onSubmit={joinWithCode} className="flex items-center gap-2">
+              <input
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="Invite code"
+                className="input py-2 w-32 font-mono uppercase tracking-widest text-sm"
+                maxLength={12}
+              />
+              <button type="submit" disabled={joining || !joinCode.trim()} className="btn-secondary text-sm">
+                {joining ? "…" : "Join"}
+              </button>
+            </form>
+            <button onClick={() => setShowForm(!showForm)} className="btn-primary">
+              {showForm ? "Cancel" : "+ Create Tournament"}
+            </button>
+          </div>
         </div>
 
         {showForm && (
@@ -77,12 +124,34 @@ export default function TournamentsPage() {
             <p className="font-bold text-base">New Tournament</p>
             <input required value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
               placeholder="Tournament name" className="input" />
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-gray-500 uppercase tracking-wider">Players</label>
-              <select value={form.max_players} onChange={(e) => setForm((f) => ({ ...f, max_players: +e.target.value }))} className="input py-2">
-                {[4,8,16,32].map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
+            <textarea value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+              placeholder="Description (optional)" rows={2} className="input resize-none" />
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-gray-500 uppercase tracking-wider">Registration opens</label>
+                <input type="datetime-local" value={form.registration_start}
+                  onChange={(e) => setForm((f) => ({ ...f, registration_start: e.target.value }))}
+                  className="input py-2" />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-gray-500 uppercase tracking-wider">Registration closes → auto-start</label>
+                <input type="datetime-local" value={form.registration_end}
+                  onChange={(e) => setForm((f) => ({ ...f, registration_end: e.target.value }))}
+                  className="input py-2" />
+              </div>
             </div>
+            <p className="text-xs text-gray-600 -mt-1">
+              Leave dates empty to open registration immediately and start the tournament manually.
+              When the close time passes, matchmaking runs automatically.
+            </p>
+
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <input type="checkbox" checked={form.is_private}
+                onChange={(e) => setForm((f) => ({ ...f, is_private: e.target.checked }))}
+                className="w-4 h-4 accent-amber-500" />
+              <span>Private — only players with the invite code can join (hidden from the list)</span>
+            </label>
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-gray-500 uppercase tracking-wider">Time Control</label>
@@ -133,15 +202,10 @@ export default function TournamentsPage() {
                     <span className={clsx("shrink-0", cfg.badge)}>{cfg.label}</span>
                   </div>
                   <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span>👥 {t.participant_count}/{t.max_players}</span>
+                    <span>👥 {t.participant_count} {t.participant_count === 1 ? "player" : "players"}</span>
                     <span>⏱ {t.time_control / 60}+{t.increment}</span>
                     {t.winner && <span className="text-amber-400">🏆 {t.winner.username}</span>}
                   </div>
-                  <div className="w-full bg-white/[0.05] rounded-full h-1 overflow-hidden">
-                    <div className="h-full bg-amber-500 rounded-full transition-all"
-                      style={{ width: `${(t.participant_count / t.max_players) * 100}%` }} />
-                  </div>
-                  <p className="text-xs text-gray-600 text-right">{t.max_players - t.participant_count} spots left →</p>
                 </Link>
               );
             })}

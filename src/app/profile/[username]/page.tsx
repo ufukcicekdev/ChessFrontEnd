@@ -64,7 +64,7 @@ export default function PublicProfilePage() {
 
   return (
     <div className="min-h-screen pt-24 pb-16 px-4">
-      <div className="max-w-2xl mx-auto flex flex-col gap-6">
+      <div className="max-w-5xl mx-auto flex flex-col gap-6">
 
         {/* Kimlik kartı */}
         <div className="card flex items-center gap-5">
@@ -73,7 +73,7 @@ export default function PublicProfilePage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={profile.avatar} alt={profile.username} className="w-full h-full object-cover" />
             ) : (
-              profile.username[0].toUpperCase()
+              profile.username?.[0]?.toUpperCase()
             )}
           </div>
           <div className="flex-1 min-w-0">

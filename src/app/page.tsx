@@ -1,120 +1,115 @@
 import Link from "next/link";
-import LivePlatformStats from "@/components/LivePlatformStats";
+import Image from "next/image";
+import { Swords, Trophy, Eye, BarChart3, BookOpen, Users, Globe, Headphones } from "lucide-react";
+import LiveGamesPreview from "@/components/LiveGamesPreview";
+import MobileShowcase from "@/components/MobileShowcase";
 
 const FEATURES = [
-  { icon: "⚡", title: "Real-time Play",       desc: "Instant move sync via WebSockets. Your opponent's move appears in milliseconds.",        color: "from-amber-500/20 to-orange-500/5",  border: "border-amber-500/20" },
-  { icon: "👁", title: "Live Spectating",      desc: "Watch any public game in real-time. Follow moves as they happen, never miss a match.",  color: "from-violet-500/20 to-purple-500/5", border: "border-violet-500/20" },
-  { icon: "🏆", title: "Tournaments",          desc: "Join single-elimination bracket tournaments. The bracket is auto-generated, compete for the title.", color: "from-emerald-500/20 to-green-500/5", border: "border-emerald-500/20" },
-  { icon: "📈", title: "Elo Rating",           desc: "Your Elo updates after every game. Climb the leaderboard and surpass your rivals.",     color: "from-blue-500/20 to-cyan-500/5",     border: "border-blue-500/20" },
-  { icon: "🎮", title: "All Time Controls",    desc: "Play Bullet, Blitz, Rapid or Classical. Or create a custom time control.",              color: "from-rose-500/20 to-pink-500/5",     border: "border-rose-500/20" },
-  { icon: "📜", title: "Game History",         desc: "Every game is stored in PGN format. Review any game, analyze your mistakes.",           color: "from-orange-500/20 to-amber-500/5",  border: "border-orange-500/20" },
+  { Icon: Swords,    title: "Play Online",  desc: "Bullet, Blitz, Rapid or Classical. Play anytime.", href: "/play" },
+  { Icon: Trophy,    title: "Tournaments",  desc: "Join tournaments and win amazing rewards.",         href: "/tournaments" },
+  { Icon: Eye,       title: "Live Games",   desc: "Watch live games and top players in action.",       href: "/watch" },
+  { Icon: BarChart3, title: "Leaderboard",  desc: "Climb the ranks and become the best.",              href: "/leaderboard" },
+  { Icon: BookOpen,  title: "Training",     desc: "Improve your game with puzzles and lessons.",       href: "/train" },
 ];
 
-// Rank 1 after white kingside castle: ♜♞♝♛ · · ♖♔  (king on g1, rook on f1)
-const BACK_RANK  = ["♜","♞","♝","♛","·","·","♖","♔"];
-const PAWN_RANK  = ["♟","♟","♟","♟","♟","♟","♟","♟"];
+const STATS = [
+  { Icon: Swords,     value: "5M+",   label: "Games Played" },
+  { Icon: Users,      value: "150K+", label: "Active Players" },
+  { Icon: Globe,      value: "200+",  label: "Countries" },
+  { Icon: Headphones, value: "24/7",  label: "Live Support" },
+  { Icon: Trophy,     value: "100+",  label: "Tournaments Daily" },
+];
 
 export default function HomePage() {
   return (
     <div className="bg-hero min-h-screen">
-      {/* Hero */}
-      <section className="relative pt-32 pb-20 px-4 overflow-hidden">
+      {/* ── Hero ─────────────────────────────────────────────────────────── */}
+      <section className="relative pt-28 pb-16 px-4 overflow-hidden">
         <div className="absolute inset-0 chess-pattern opacity-40" />
-        <div className="absolute top-20 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-amber-500/[0.04] rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute top-32 left-[8%]  text-5xl opacity-10 animate-float delay-100 select-none">♛</div>
-        <div className="absolute top-48 right-[10%] text-4xl opacity-10 animate-float delay-200 select-none">♞</div>
-        <div className="absolute bottom-20 left-[15%] text-3xl opacity-10 animate-float delay-300 select-none">♜</div>
-        <div className="absolute bottom-32 right-[8%] text-5xl opacity-10 animate-float select-none">♝</div>
+        <div className="absolute top-10 right-[10%] w-[560px] h-[560px] bg-amber-500/[0.05] rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-full px-4 py-1.5 text-sm text-amber-400 font-medium mb-6">
-            <span className="font-mono font-bold tracking-widest">O-O</span>
-            <span className="w-px h-3.5 bg-amber-500/40" />
-            Kingside castle. Real-time chess.
-          </div>
-          <h1 className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-none mb-6">
-            Castle your{" "}<span className="gradient-text">way to the top.</span>
-          </h1>
-          <p className="text-gray-400 text-lg sm:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
-            <span className="text-amber-400 font-mono font-bold">chess O-O</span> — named after the kingside castle, the boldest move in chess.
-            Real-time games, live spectating and competitive tournaments, all in one platform.
-          </p>
-          <div className="flex flex-wrap gap-4 justify-center">
-            <Link href="/play" className="btn-primary text-base px-8 py-3.5">Play Now →</Link>
-            <Link href="/watch" className="btn-secondary text-base px-8 py-3.5">Watch Live</Link>
-          </div>
-
-          {/* Mini board — castling position (O-O) */}
-          <div className="mt-16 flex flex-col items-center gap-3">
-            <div className="inline-grid grid-cols-8 rounded-2xl overflow-hidden shadow-2xl shadow-black/60 border border-white/10 select-none">
-              {BACK_RANK.map((p, i) => {
-                const isLight = i % 2 === 0;
-                // highlight king (g1=idx 6) and rook (f1=idx 5) after castling
-                const isCastled = i === 5 || i === 6;
-                return (
-                  <div key={i} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-xl sm:text-2xl transition-all"
-                    style={{
-                      background: isCastled ? "rgba(245,158,11,0.45)" : isLight ? "#f0d9b5" : "#b58863",
-                      color: "#1a1a1a",
-                    }}>
-                    {p === "·" ? "" : p}
-                  </div>
-                );
-              })}
-              {PAWN_RANK.map((p, i) => (
-                <div key={`pw${i}`} className="w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center text-xl sm:text-2xl"
-                  style={{ background: i % 2 !== 0 ? "#f0d9b5" : "#b58863", color: "#1a1a1a" }}>
-                  {p}
-                </div>
-              ))}
+        <div className="relative max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left: copy */}
+          <div>
+            <h1
+              className="font-serif-display text-5xl sm:text-6xl md:text-7xl font-bold tracking-tight leading-[1.05] mb-7"
+            >
+              Castle your <br /> way to the top.
+            </h1>
+            <p className="text-gray-400 text-lg max-w-sm mb-9 leading-relaxed">
+              Real-time chess. Global players. Tournaments. Live spectating.
+              Everything you need in one place.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <Link href="/play" className="btn-contrast text-sm tracking-wide px-8 py-3.5">PLAY NOW</Link>
+              <Link href="/watch" className="btn-outline text-sm tracking-wide px-8 py-3.5">WATCH LIVE</Link>
             </div>
-            <p className="text-xs text-amber-400/70 font-mono tracking-widest">O-O · Kingside Castle</p>
+          </div>
+
+          {/* Right: hero image */}
+          <div className="relative">
+            <div className="relative aspect-[4/3] rounded-3xl overflow-hidden shadow-2xl shadow-black/50 border border-white/10">
+              <Image
+                src="/hero-chess.jpeg"
+                alt="Luxury chess set — the black king stands over a fallen white queen"
+                fill
+                priority
+                sizes="(max-width: 1024px) 100vw, 50vw"
+                className="object-cover"
+              />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Live stats from API */}
+      {/* ── Feature strip ────────────────────────────────────────────────── */}
+      <section className="px-4 pb-4">
+        <div className="max-w-7xl mx-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {FEATURES.map((f) => (
+            <Link
+              key={f.title}
+              href={f.href}
+              className="card-hover group flex flex-col gap-2 p-5"
+            >
+              <f.Icon className="w-6 h-6 mb-1 opacity-80 group-hover:scale-110 transition-transform" strokeWidth={1.5} />
+              <h3 className="font-bold text-sm uppercase tracking-wide">{f.title}</h3>
+              <p className="text-xs text-gray-500 leading-relaxed">{f.desc}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Live games ───────────────────────────────────────────────────── */}
       <section className="px-4 py-12">
-        <LivePlatformStats variant="hero" />
-      </section>
-
-      {/* Features */}
-      <section className="px-4 py-16">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-3">
-              Everything in <span className="gradient-text">one platform</span>
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-between mb-5">
+            <h2 className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest">
+              <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+              Live Games
             </h2>
-            <p className="text-gray-500 max-w-xl mx-auto">
-              Every feature you need to play chess, delivered in one seamless experience.
-            </p>
+            <Link href="/watch" className="text-xs font-semibold text-amber-400 hover:text-amber-300 transition-colors">
+              View All →
+            </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {FEATURES.map((f) => (
-              <div key={f.title} className={`rounded-2xl border ${f.border} p-6 bg-gradient-to-br ${f.color} hover:scale-[1.02] transition-transform duration-200`}>
-                <div className="text-3xl mb-4">{f.icon}</div>
-                <h3 className="font-bold text-base mb-2">{f.title}</h3>
-                <p className="text-sm text-gray-400 leading-relaxed">{f.desc}</p>
-              </div>
-            ))}
-          </div>
+          <LiveGamesPreview />
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="px-4 py-20">
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="card-glow p-10">
-            <div className="text-4xl mb-4 font-mono font-black tracking-widest text-amber-400">O-O</div>
-            <h2 className="text-3xl font-bold mb-3">Ready to castle?</h2>
-            <p className="text-gray-400 mb-8">
-              Create a free account, find an opponent and start playing. Your first game is one castle away.
-            </p>
-            <div className="flex gap-3 justify-center flex-wrap">
-              <Link href="/auth/register" className="btn-primary px-8">Register Free</Link>
-              <Link href="/tournaments"   className="btn-secondary px-8">Browse Tournaments</Link>
+      {/* ── Mobile app showcase ──────────────────────────────────────────── */}
+      <MobileShowcase />
+
+      {/* ── Stats bar ────────────────────────────────────────────────────── */}
+      <section className="px-4 pb-20">
+        <div className="max-w-7xl mx-auto card grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 py-8">
+          {STATS.map((s) => (
+            <div key={s.label} className="flex items-center gap-3 justify-center">
+              <s.Icon className="w-6 h-6 opacity-60 shrink-0" strokeWidth={1.5} />
+              <div>
+                <div className="text-xl font-black leading-none">{s.value}</div>
+                <div className="text-xs text-gray-500 mt-1">{s.label}</div>
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </section>
     </div>

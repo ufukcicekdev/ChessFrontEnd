@@ -21,12 +21,28 @@ export default function TournamentDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
 
+  const [copied, setCopied] = useState(false);
+
   const load = () =>
     api.get(`/api/tournaments/${id}/`)
       .then(({ data }) => setTournament(data))
       .finally(() => setLoading(false));
 
-  useEffect(() => { load(); }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    load();
+    // Poll so scheduled → registration → active transitions show up live.
+    const t = setInterval(load, 15000);
+    return () => clearInterval(t);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const copyCode = async () => {
+    if (!tournament?.invite_code) return;
+    try {
+      await navigator.clipboard.writeText(tournament.invite_code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /* clipboard unavailable */ }
+  };
 
   const join = async () => {
     setJoining(true); setError(null);
@@ -61,9 +77,15 @@ export default function TournamentDetailPage() {
 
   const isCreator = user?.username === tournament.created_by?.username;
   const isParticipant = tournament.participants.some((p) => p.username === user?.username);
+  const isScheduled = tournament.status === "scheduled";
   const isRegistration = tournament.status === "registration";
   const isActive = tournament.status === "active";
   const isCancelled = tournament.status === "cancelled";
+
+  const fmtDate = (s: string | null) =>
+    s ? new Date(s).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : null;
+  const regEnd = tournament.registration_end;
+  const regStart = tournament.registration_start;
 
   return (
     <div className="max-w-5xl mx-auto px-4 pt-24 pb-16 flex flex-col gap-8">
@@ -84,10 +106,11 @@ export default function TournamentDetailPage() {
           <h1 className="text-3xl font-bold">{tournament.name}</h1>
           {tournament.description && <p className="text-gray-400 mt-1">{tournament.description}</p>}
           <p className="text-sm text-gray-500 mt-2">
-            {tournament.participant_count}/{tournament.max_players} players ·{" "}
+            {tournament.participant_count} {tournament.participant_count === 1 ? "player" : "players"} ·{" "}
             {tournament.time_control / 60}+{tournament.increment} min ·{" "}
-            <span className={isRegistration ? "text-blue-400" : isActive ? "text-emerald-400" : isCancelled ? "text-red-400" : "text-gray-500"}>
-              {isRegistration ? "Registration open" : isActive ? "In progress" : isCancelled ? "Cancelled" : "Finished"}
+            {tournament.is_private && <span className="text-amber-400">🔒 Private · </span>}
+            <span className={isScheduled ? "text-amber-400" : isRegistration ? "text-blue-400" : isActive ? "text-emerald-400" : isCancelled ? "text-red-400" : "text-gray-500"}>
+              {isScheduled ? "Scheduled" : isRegistration ? "Registration open" : isActive ? "In progress" : isCancelled ? "Cancelled" : "Finished"}
             </span>
           </p>
         </div>
@@ -97,25 +120,52 @@ export default function TournamentDetailPage() {
               {joining ? "Joining…" : "Join"}
             </button>
           )}
-          {isRegistration && isParticipant && !isCreator && (
+          {(isRegistration || isScheduled) && isParticipant && !isCreator && (
             <button onClick={leave} disabled={leaving} className="btn-secondary">
               {leaving ? "Leaving…" : "Leave"}
             </button>
           )}
           {isCreator && isRegistration && (
-            <>
-              <button onClick={start} disabled={starting || tournament.participant_count < 2} className="btn-primary">
-                {starting ? "Starting…" : "Start Tournament"}
-              </button>
-              <button onClick={() => setConfirmCancel(true)} disabled={cancelling} className="btn-danger text-sm">
-                {cancelling ? "…" : "Cancel"}
-              </button>
-            </>
+            <button onClick={start} disabled={starting || tournament.participant_count < 2} className="btn-primary">
+              {starting ? "Starting…" : "Start Now"}
+            </button>
+          )}
+          {isCreator && (isRegistration || isScheduled) && (
+            <button onClick={() => setConfirmCancel(true)} disabled={cancelling} className="btn-danger text-sm">
+              {cancelling ? "…" : "Cancel"}
+            </button>
           )}
         </div>
       </div>
 
       {error && <p className="text-red-400 text-sm">{error}</p>}
+
+      {/* Invite code + registration window */}
+      {(tournament.invite_code || regStart || regEnd) && (isScheduled || isRegistration) && (
+        <div className="card flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+          {tournament.invite_code && (
+            <div>
+              <p className="text-xs text-gray-500 uppercase tracking-wider mb-1">Invite code</p>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-lg font-bold tracking-widest text-amber-400">{tournament.invite_code}</span>
+                <button onClick={copyCode} className="btn-secondary text-xs py-1 px-2">
+                  {copied ? "Copied ✓" : "Copy"}
+                </button>
+              </div>
+              <p className="text-xs text-gray-600 mt-1">Share this code so others can join.</p>
+            </div>
+          )}
+          <div className="text-sm text-gray-400 sm:text-right">
+            {regStart && isScheduled && <p>Opens: <span className="text-gray-200">{fmtDate(regStart)}</span></p>}
+            {regEnd && (
+              <p>
+                {isRegistration ? "Closes & auto-starts: " : "Auto-starts: "}
+                <span className="text-gray-200">{fmtDate(regEnd)}</span>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Winner banner */}
       {tournament.winner && (
@@ -131,7 +181,7 @@ export default function TournamentDetailPage() {
           <h2 className="text-xl font-semibold mb-4">
             Players
             <span className="text-sm font-normal text-gray-500 ml-2">
-              {tournament.participant_count}/{tournament.max_players}
+              {tournament.participant_count}
             </span>
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
@@ -142,7 +192,7 @@ export default function TournamentDetailPage() {
                 className="card-hover flex items-center gap-2 px-3 py-2"
               >
                 <div className="w-7 h-7 rounded-full bg-amber-500/15 border border-amber-500/20 flex items-center justify-center text-xs font-bold text-amber-400 shrink-0">
-                  {p.username[0].toUpperCase()}
+                  {p.username?.[0]?.toUpperCase()}
                 </div>
                 <div className="min-w-0">
                   <p className="text-sm font-medium truncate">{p.username}</p>

@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "chess0-0 · Real-time Chess Platform";
+export const alt = "fianchess · Real-time Chess Platform";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -69,7 +69,7 @@ export default function OgImage() {
         {/* Title */}
         <div style={{ display: "flex", alignItems: "baseline", gap: "12px", marginBottom: "16px" }}>
           <span style={{ fontSize: 64, fontWeight: 900, color: "#ffffff", letterSpacing: "-2px" }}>
-            chess
+            fian
           </span>
           <span
             style={{
@@ -77,10 +77,9 @@ export default function OgImage() {
               fontWeight: 900,
               color: "#f59e0b",
               letterSpacing: "-2px",
-              fontFamily: "monospace",
             }}
           >
-            0-0
+            chess
           </span>
         </div>
 
