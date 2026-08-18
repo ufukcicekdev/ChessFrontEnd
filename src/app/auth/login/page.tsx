@@ -45,7 +45,12 @@ export default function LoginPage() {
               placeholder="your_username" className="input" autoComplete="username" />
           </div>
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Password</label>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Password</label>
+              <Link href="/auth/forgot-password" className="text-xs text-amber-400 hover:text-amber-300 font-medium transition-colors">
+                Forgot password?
+              </Link>
+            </div>
             <input required type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
               placeholder="••••••••" className="input" autoComplete="current-password" />
           </div>
