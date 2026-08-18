@@ -71,16 +71,48 @@ export function ChallengesProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (!token) { setReceived([]); setSent([]); return; }
-    // Poll every 12s, but only while the tab is visible (pause in background),
-    // and refresh immediately when the tab regains focus.
-    poll();
+
+    poll(); // initial load
+
+    // Real-time: a per-user WebSocket pushes "something changed" events; we then
+    // refetch. This replaces constant polling — no fixed-interval requests.
+    let ws: WebSocket | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+    let closed = false;
+    let attempts = 0;
+
+    const connect = () => {
+      const wsBase = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
+      const access = (typeof window !== "undefined" && localStorage.getItem("access_token")) || token;
+      try {
+        ws = new WebSocket(`${wsBase}/ws/notifications/?token=${access}`);
+      } catch {
+        return;
+      }
+      ws.onopen = () => { attempts = 0; poll(); };
+      ws.onmessage = () => { poll(); };
+      ws.onclose = () => {
+        if (closed) return;
+        attempts += 1;
+        const delay = Math.min(30000, 1000 * 2 ** attempts);
+        reconnectTimer = setTimeout(connect, delay);
+      };
+      ws.onerror = () => { try { ws?.close(); } catch { /* noop */ } };
+    };
+    connect();
+
+    // Safety net for reconnect gaps / missed events — slow, and only when visible.
     const tick = () => { if (!document.hidden) poll(); };
-    const t = setInterval(tick, 12000);
+    const t = setInterval(tick, 60000);
     const onVisible = () => { if (!document.hidden) poll(); };
     document.addEventListener("visibilitychange", onVisible);
+
     return () => {
+      closed = true;
       clearInterval(t);
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       document.removeEventListener("visibilitychange", onVisible);
+      try { ws?.close(); } catch { /* noop */ }
     };
   }, [poll, token]);
 
