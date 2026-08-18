@@ -71,9 +71,17 @@ export function ChallengesProvider({ children }: { children: React.ReactNode }) 
 
   useEffect(() => {
     if (!token) { setReceived([]); setSent([]); return; }
+    // Poll every 12s, but only while the tab is visible (pause in background),
+    // and refresh immediately when the tab regains focus.
     poll();
-    const t = setInterval(poll, 4000);
-    return () => clearInterval(t);
+    const tick = () => { if (!document.hidden) poll(); };
+    const t = setInterval(tick, 12000);
+    const onVisible = () => { if (!document.hidden) poll(); };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [poll, token]);
 
   const accept = useCallback(async (id: string) => {
