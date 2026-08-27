@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import api from "@/lib/api";
 import { firebaseConfigured, requestFcmToken, onForegroundMessage } from "@/lib/firebase";
+import { isNative } from "@/lib/native";
 
 /**
  * Registers the browser's FCM token with the backend after login and surfaces
@@ -16,7 +17,9 @@ export default function FcmProvider() {
   const registeredToken = useRef<string | null>(null);
 
   useEffect(() => {
-    if (!token || !firebaseConfigured()) return;
+    // Inside the native app, NativeBridge handles push via Capacitor; the web
+    // service-worker path doesn't work in a WebView.
+    if (!token || !firebaseConfigured() || isNative()) return;
     let unsub: (() => void) | undefined;
     let cancelled = false;
 

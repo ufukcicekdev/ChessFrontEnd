@@ -251,3 +251,19 @@ html.light .glass {
 .delay-100 { animation-delay: 0.1s; }
 .delay-200 { animation-delay: 0.2s; }
 .delay-300 { animation-delay: 0.3s; }
+
+/* ── Native app (Capacitor) safe-area handling ──────────────────────────── */
+/* Only applies inside the iOS/Android shell; env() insets are 0 on the web. */
+.native-app body {
+  /* Keep content clear of the iOS home indicator. */
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.native-app nav.fixed {
+  /* Push the fixed navbar below the status bar / notch. */
+  padding-top: env(safe-area-inset-top);
+}
+/* Prevent iOS long-press callout / text selection on the game UI. */
+.native-app {
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+}

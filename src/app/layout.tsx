@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/ui/Navbar";
 import ChallengeNotification from "@/components/ChallengeNotification";
 import FcmProvider from "@/components/FcmProvider";
+import NativeBridge from "@/components/NativeBridge";
 import { ChallengesProvider } from "@/context/ChallengesContext";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -50,6 +51,7 @@ export const viewport: Viewport = {
   themeColor: "#0a0a0f",
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -61,6 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <main>{children}</main>
           <ChallengeNotification />
           <FcmProvider />
+          <NativeBridge />
         </ChallengesProvider>
       </body>
     </html>
