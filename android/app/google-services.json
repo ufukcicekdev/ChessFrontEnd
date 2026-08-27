@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "881974706411",
+    "project_id": "fianchess",
+    "storage_bucket": "fianchess.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:881974706411:android:5ff9f27e1f0f284d7ebeae",
+        "android_client_info": {
+          "package_name": "com.fianchess.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCQP8p6bpp-lhIXg-7Jlbi3ku44yWtxb20"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

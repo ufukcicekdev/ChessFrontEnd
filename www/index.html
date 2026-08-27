@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no"
+    />
+    <title>fianchess</title>
+    <style>
+      :root { color-scheme: dark; }
+      html, body {
+        margin: 0;
+        height: 100%;
+        background: #0a0a0f;
+        color: #e5e7eb;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      .wrap {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 20px;
+        text-align: center;
+        padding: 24px;
+      }
+      .logo {
+        width: 96px;
+        height: 96px;
+        border-radius: 22px;
+        object-fit: cover;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+      }
+      .title { font-size: 22px; font-weight: 700; letter-spacing: 0.5px; }
+      .sub { font-size: 14px; color: #9ca3af; max-width: 260px; line-height: 1.5; }
+      .spinner {
+        width: 28px;
+        height: 28px;
+        border: 3px solid rgba(255, 255, 255, 0.15);
+        border-top-color: #e5e7eb;
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite;
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <img class="logo" src="./icon-512.png" alt="fianchess" />
+      <div class="title">fianchess</div>
+      <div class="spinner"></div>
+      <div class="sub" id="msg">Loading…</div>
+    </div>
+    <script>
+      // Shown only as a fallback while the live site loads or when offline.
+      // If there's no network, surface a clearer message.
+      if (!navigator.onLine) {
+        document.getElementById("msg").textContent =
+          "You appear to be offline. Reconnect to keep playing.";
+      }
+    </script>
+  </body>
+</html>
