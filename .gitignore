@@ -31,3 +31,7 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 next-env.d.ts
+
+# Firebase client config (kept local; GitHub secret-scanning flags the client apiKey)
+android/app/google-services.json
+ios/App/App/GoogleService-Info.plist
