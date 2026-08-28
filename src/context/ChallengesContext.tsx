@@ -59,7 +59,13 @@ export function ChallengesProvider({ children }: { children: React.ReactNode }) 
         sentData.forEach((c) => {
           if (c.status === "accepted" && c.room_id && !seenRef.current.has(c.id)) {
             seenRef.current.add(c.id);
-            router.push(`/room/${c.room_id}`);
+            // Don't re-navigate if we're already in that room (e.g. an old
+            // rematch flow could push us to the room we're already in, which
+            // remounts the page and resets the board).
+            const target = `/room/${c.room_id}`;
+            if (typeof window === "undefined" || window.location.pathname !== target) {
+              router.push(target);
+            }
           }
         });
         return sentData;

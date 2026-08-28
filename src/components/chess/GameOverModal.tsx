@@ -36,12 +36,17 @@ export default function GameOverModal({
 }: GameOverModalProps) {
   const router = useRouter();
   const [rematching, setRematching] = useState(false);
+  const [rematchSent, setRematchSent] = useState(false);
 
   const rematch = async () => {
     if (!timeControl) return;
     setRematching(true);
     try {
       const opponent = currentUsername === whitePlayer ? blackPlayer : whitePlayer;
+      const myColor = currentUsername === whitePlayer ? "white" : "black";
+      // Alternate colors on a rematch: the initiator takes the opposite color
+      // of the game that just ended (standard chess rematch behaviour).
+      const challengerColor = myColor === "white" ? "black" : "white";
       const { data } = await api.post("/api/chess/rooms/", {
         name: `Rematch`,
         is_public: false,
@@ -53,11 +58,20 @@ export default function GameOverModal({
           username: opponent,
           time_control: timeControl,
           increment: increment ?? 0,
+          challenger_color: challengerColor,
           room_id: data.id,
-        }).catch(() => {});
+        });
+        // Do NOT navigate yet. Wait for the opponent to accept — the backend
+        // assigns colors and starts the game on accept, and the per-user
+        // challenge socket then navigates both players into the room exactly
+        // once. Navigating early made the initiator join first (grabbing a
+        // color + starting the game), which the accept step then overwrote —
+        // causing the board to reset and the colors to flip.
+        setRematchSent(true);
+      } else {
+        // Opponent already left — just open the fresh room.
+        router.push(`/room/${data.id}`);
       }
-      // navigate — no need to reset rematching, component unmounts
-      router.push(`/room/${data.id}`);
     } catch {
       setRematching(false);
     }
@@ -176,8 +190,8 @@ export default function GameOverModal({
           ) : (
             <div className="flex flex-col sm:flex-row gap-2 justify-center flex-wrap">
               {timeControl && (
-                <button onClick={rematch} disabled={rematching} className="btn-primary w-full sm:w-auto">
-                  {rematching ? "Creating…" : "⚔ Rematch"}
+                <button onClick={rematch} disabled={rematching || rematchSent} className="btn-primary w-full sm:w-auto">
+                  {rematchSent ? "Waiting for opponent…" : rematching ? "Sending…" : "⚔ Rematch"}
                 </button>
               )}
               <Link href="/play" className="btn-secondary w-full sm:w-auto text-center">
