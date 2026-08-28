@@ -92,11 +92,21 @@ export function ChallengesProvider({ children }: { children: React.ReactNode }) 
 
     const stopHeartbeat = () => { clearInterval(heartbeat); clearInterval(watchdog); };
 
-    const connect = () => {
+    const connect = async () => {
       const wsBase = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
-      const access = (typeof window !== "undefined" && localStorage.getItem("access_token")) || token;
+      // Prefer a short-lived one-time ticket (axios refreshes an expired JWT
+      // for us) so a stale access token can't wedge the reconnect loop.
+      let url = `${wsBase}/ws/notifications/`;
       try {
-        ws = new WebSocket(`${wsBase}/ws/notifications/?token=${access}`);
+        const { data } = await api.post("/api/chess/ws-ticket/");
+        url += `?ticket=${data.ticket}`;
+      } catch {
+        const access = (typeof window !== "undefined" && localStorage.getItem("access_token")) || token;
+        url += `?token=${access}`;
+      }
+      if (closed) return;
+      try {
+        ws = new WebSocket(url);
       } catch {
         return;
       }
