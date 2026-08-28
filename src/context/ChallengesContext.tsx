@@ -148,9 +148,19 @@ export function ChallengesProvider({ children }: { children: React.ReactNode }) 
       };
       ws.onmessage = (e) => {
         lastMsgAt = Date.now();
-        let type: string | undefined;
-        try { type = JSON.parse(e.data)?.type; } catch { /* noop */ }
-        if (type === "pong") return; // heartbeat ack — don't refetch
+        let msg: { type?: string; event?: { kind?: string; room_id?: string } } | undefined;
+        try { msg = JSON.parse(e.data); } catch { /* noop */ }
+        if (msg?.type === "pong") return; // heartbeat ack — don't refetch
+        // Tournament match opened → take the player straight to their game so
+        // they aren't forfeited as a no-show while sitting in the app.
+        const ev = msg?.event;
+        if (ev?.kind === "tournament_match" && ev.room_id && !seenRef.current.has(`tm:${ev.room_id}`)) {
+          seenRef.current.add(`tm:${ev.room_id}`);
+          const target = `/room/${ev.room_id}`;
+          if (typeof window === "undefined" || window.location.pathname !== target) {
+            router.push(target);
+          }
+        }
         poll();
       };
       ws.onclose = () => {

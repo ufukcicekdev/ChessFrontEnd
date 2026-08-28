@@ -225,15 +225,15 @@ export default function PlayPage() {
             </button>
           </div>
         ) : (
-          <div className="card flex items-center justify-between">
-            <div className="text-sm text-gray-300 flex items-center gap-2">
-              <span className="inline-block w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
-              Searching for an opponent…
-              <span className="font-mono text-violet-300 tabular-nums">
-                {Math.floor(searchSeconds / 60)}:{String(searchSeconds % 60).padStart(2, "0")}
+          <div className="card flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-center gap-3 text-sm text-gray-300">
+              <span className="inline-block w-2 h-2 rounded-full bg-violet-400 animate-pulse shrink-0" />
+              <span>Searching for an opponent…</span>
+              <span className="font-mono text-lg font-semibold text-violet-300 tabular-nums">
+                {String(Math.max(0, 60 - searchSeconds)).padStart(2, "0")}s
               </span>
             </div>
-            <button onClick={cancelMatchmaking} className="btn-danger px-4 py-2 text-sm">
+            <button onClick={cancelMatchmaking} className="btn-danger px-4 py-2 text-sm w-full sm:w-auto">
               Cancel
             </button>
           </div>
