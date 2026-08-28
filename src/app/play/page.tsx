@@ -29,8 +29,10 @@ export default function PlayPage() {
   const [loading, setLoading] = useState(false);
   const [joinId, setJoinId] = useState("");
   const [searching, setSearching] = useState(false);
+  const [searchSeconds, setSearchSeconds] = useState(0);
   const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
   const pollTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const searchTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -45,6 +47,12 @@ export default function PlayPage() {
       })
       .catch(() => {});
   }, [user]);
+
+  // Clear the poll/search timers if we navigate away while searching.
+  useEffect(() => () => {
+    if (pollTimer.current) clearInterval(pollTimer.current);
+    if (searchTimer.current) clearInterval(searchTimer.current);
+  }, []);
 
   const createRoom = async () => {
     if (!user) { router.push("/auth/login"); return; }
@@ -68,12 +76,17 @@ export default function PlayPage() {
   const stopPolling = () => {
     if (pollTimer.current) clearInterval(pollTimer.current);
     pollTimer.current = null;
+    if (searchTimer.current) clearInterval(searchTimer.current);
+    searchTimer.current = null;
   };
 
   const startMatchmaking = async () => {
     if (!user) { router.push("/auth/login"); return; }
     const preset = TIME_PRESETS[selected];
     setSearching(true);
+    setSearchSeconds(0);
+    if (searchTimer.current) clearInterval(searchTimer.current);
+    searchTimer.current = setInterval(() => setSearchSeconds((s) => s + 1), 1000);
     try {
       const { data } = await api.post("/api/chess/matchmaking/join/", {
         time_control: preset.time,
@@ -213,8 +226,12 @@ export default function PlayPage() {
           </div>
         ) : (
           <div className="card flex items-center justify-between">
-            <div className="text-sm text-gray-300">
-              Searching for an opponent… <span className="text-gray-500">(same time control)</span>
+            <div className="text-sm text-gray-300 flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-violet-400 animate-pulse" />
+              Searching for an opponent…
+              <span className="font-mono text-violet-300 tabular-nums">
+                {Math.floor(searchSeconds / 60)}:{String(searchSeconds % 60).padStart(2, "0")}
+              </span>
             </div>
             <button onClick={cancelMatchmaking} className="btn-danger px-4 py-2 text-sm">
               Cancel
