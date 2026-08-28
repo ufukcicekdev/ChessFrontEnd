@@ -277,19 +277,19 @@ function LeaderboardContent() {
           </div>
         )}
 
-        <div className="card overflow-hidden p-0">
+        <div className="card overflow-x-auto p-0">
           {loading ? (
             <div className="p-8 text-center text-gray-500">Loading…</div>
           ) : (
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/[0.06] text-gray-600 text-xs uppercase tracking-wider">
-                  <th className="px-5 py-3.5 text-left w-12">#</th>
-                  <th className="px-5 py-3.5 text-left">Player</th>
-                  <th className="px-5 py-3.5 text-right">Elo</th>
-                  <th className="px-5 py-3.5 text-right hidden sm:table-cell">W/D/L</th>
-                  <th className="px-5 py-3.5 text-right hidden sm:table-cell">Win %</th>
-                  {user && <th className="px-5 py-3.5 text-right w-10"></th>}
+                  <th className="px-2.5 sm:px-5 py-3.5 text-left w-12">#</th>
+                  <th className="px-2.5 sm:px-5 py-3.5 text-left">Player</th>
+                  <th className="px-2.5 sm:px-5 py-3.5 text-right">Elo</th>
+                  <th className="px-2.5 sm:px-5 py-3.5 text-right hidden sm:table-cell">W/D/L</th>
+                  <th className="px-2.5 sm:px-5 py-3.5 text-right hidden sm:table-cell">Win %</th>
+                  {user && <th className="px-2.5 sm:px-5 py-3.5 text-right w-10"></th>}
                 </tr>
               </thead>
               <tbody>
@@ -298,10 +298,10 @@ function LeaderboardContent() {
                   const isMe = user?.username === p.username;
                   return (
                     <tr key={p.id} className="border-b border-white/[0.04] last:border-0 hover:bg-white/[0.03] transition-colors">
-                      <td className="px-5 py-3.5">
+                      <td className="px-2.5 sm:px-5 py-3.5">
                         {i < 3 ? <span className="text-base">{MEDALS[i]}</span> : <span className="text-gray-600 font-mono text-xs">{i + 1}</span>}
                       </td>
-                      <td className="px-5 py-3.5">
+                      <td className="px-2.5 sm:px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-sm font-bold text-amber-400 shrink-0">
                             {p.username?.[0]?.toUpperCase()}
@@ -310,11 +310,11 @@ function LeaderboardContent() {
                           {isMe && <span className="text-[10px] text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">you</span>}
                         </div>
                       </td>
-                      <td className="px-5 py-3.5 text-right"><span className="font-mono font-bold text-amber-400">{p.rating}</span></td>
-                      <td className="px-5 py-3.5 text-right text-xs text-gray-500 hidden sm:table-cell">
+                      <td className="px-2.5 sm:px-5 py-3.5 text-right"><span className="font-mono font-bold text-amber-400">{p.rating}</span></td>
+                      <td className="px-2.5 sm:px-5 py-3.5 text-right text-xs text-gray-500 hidden sm:table-cell">
                         <span className="text-emerald-400">{p.games_won}</span> / <span className="text-gray-400">{p.games_drawn}</span> / <span className="text-red-400">{p.games_played - p.games_won - p.games_drawn}</span>
                       </td>
-                      <td className="px-5 py-3.5 text-right hidden sm:table-cell">
+                      <td className="px-2.5 sm:px-5 py-3.5 text-right hidden sm:table-cell">
                         <div className="flex items-center gap-2 justify-end">
                           <div className="w-16 h-1.5 bg-white/[0.06] rounded-full overflow-hidden">
                             <div className="h-full bg-amber-500 rounded-full" style={{ width: `${winPct}%` }} />
