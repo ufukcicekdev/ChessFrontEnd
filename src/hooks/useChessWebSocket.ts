@@ -50,6 +50,12 @@ export function useChessWebSocket(
 
   const countdownTimer = useRef<ReturnType<typeof setInterval>>();
 
+  // Heartbeat: detect half-open connections (that never fire onclose) and
+  // reconnect so we don't miss real-time events like the opponent resigning.
+  const heartbeatTimer = useRef<ReturnType<typeof setInterval>>();
+  const watchdogTimer = useRef<ReturnType<typeof setInterval>>();
+  const lastMsgAt = useRef<number>(Date.now());
+
   const [state, setState] = useState<ChessWSState>({
     fen: STARTING_FEN,
     pgn: "",
@@ -93,14 +99,31 @@ export function useChessWebSocket(
 
     socket.onopen = () => {
       reconnectAttempts.current = 0;
+      lastMsgAt.current = Date.now();
       setState((s) => ({ ...s, connectionStatus: "connected" }));
       if (token) {
         socket.send(JSON.stringify({ type: "join" }));
       }
+      // Ping every 25s; if the server has been silent for 40s the connection
+      // is dead (half-open) — force-close it to trigger a reconnect + resync.
+      clearInterval(heartbeatTimer.current);
+      clearInterval(watchdogTimer.current);
+      heartbeatTimer.current = setInterval(() => {
+        if (socket.readyState === WebSocket.OPEN) {
+          try { socket.send(JSON.stringify({ type: "ping" })); } catch { /* noop */ }
+        }
+      }, 25000);
+      watchdogTimer.current = setInterval(() => {
+        if (Date.now() - lastMsgAt.current > 40000) {
+          try { socket.close(); } catch { /* noop */ }
+        }
+      }, 10000);
     };
 
     socket.onmessage = (event) => {
+      lastMsgAt.current = Date.now();
       const msg: WSMessage = JSON.parse(event.data);
+      if ((msg as { type?: string }).type === "pong") return; // heartbeat ack
       handleMessage(msg);
     };
 
@@ -109,6 +132,8 @@ export function useChessWebSocket(
     };
 
     socket.onclose = () => {
+      clearInterval(heartbeatTimer.current);
+      clearInterval(watchdogTimer.current);
       setState((s) => ({ ...s, connectionStatus: "disconnected" }));
       setState((prev) => {
         if (!prev.gameResult && reconnectAttempts.current < 10) {
@@ -209,6 +234,8 @@ export function useChessWebSocket(
     return () => {
       clearTimeout(reconnectTimer.current);
       clearInterval(countdownTimer.current);
+      clearInterval(heartbeatTimer.current);
+      clearInterval(watchdogTimer.current);
       ws.current?.close();
     };
   }, [connect]);

@@ -84,8 +84,13 @@ export function ChallengesProvider({ children }: { children: React.ReactNode }) 
     // refetch. This replaces constant polling — no fixed-interval requests.
     let ws: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | undefined;
+    let heartbeat: ReturnType<typeof setInterval> | undefined;
+    let watchdog: ReturnType<typeof setInterval> | undefined;
+    let lastMsgAt = Date.now();
     let closed = false;
     let attempts = 0;
+
+    const stopHeartbeat = () => { clearInterval(heartbeat); clearInterval(watchdog); };
 
     const connect = () => {
       const wsBase = process.env.NEXT_PUBLIC_WS_URL || "ws://localhost:8000";
@@ -95,9 +100,33 @@ export function ChallengesProvider({ children }: { children: React.ReactNode }) 
       } catch {
         return;
       }
-      ws.onopen = () => { attempts = 0; poll(); };
-      ws.onmessage = () => { poll(); };
+      ws.onopen = () => {
+        attempts = 0;
+        lastMsgAt = Date.now();
+        poll();
+        // Heartbeat: ping so a half-open connection is detected and reconnected
+        // (otherwise missed real-time events silently stop arriving).
+        stopHeartbeat();
+        heartbeat = setInterval(() => {
+          if (ws?.readyState === WebSocket.OPEN) {
+            try { ws.send(JSON.stringify({ type: "ping" })); } catch { /* noop */ }
+          }
+        }, 25000);
+        watchdog = setInterval(() => {
+          if (Date.now() - lastMsgAt > 40000) {
+            try { ws?.close(); } catch { /* noop */ }
+          }
+        }, 10000);
+      };
+      ws.onmessage = (e) => {
+        lastMsgAt = Date.now();
+        let type: string | undefined;
+        try { type = JSON.parse(e.data)?.type; } catch { /* noop */ }
+        if (type === "pong") return; // heartbeat ack — don't refetch
+        poll();
+      };
       ws.onclose = () => {
+        stopHeartbeat();
         if (closed) return;
         attempts += 1;
         const delay = Math.min(30000, 1000 * 2 ** attempts);
@@ -116,6 +145,7 @@ export function ChallengesProvider({ children }: { children: React.ReactNode }) 
     return () => {
       closed = true;
       clearInterval(t);
+      stopHeartbeat();
       if (reconnectTimer) clearTimeout(reconnectTimer);
       document.removeEventListener("visibilitychange", onVisible);
       try { ws?.close(); } catch { /* noop */ }
