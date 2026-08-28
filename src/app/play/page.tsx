@@ -87,8 +87,12 @@ export default function PlayPage() {
       stopPolling();
       pollTimer.current = setInterval(async () => {
         try {
-          const res = await api.get("/api/chess/matchmaking/status/", {
-            params: { time_control: preset.time, increment: preset.inc },
+          // Re-attempt join (not just status): the queue only matches on a
+          // join call, so two players who are both waiting need to keep trying
+          // — otherwise they'd sit queued forever waiting for a third joiner.
+          const res = await api.post("/api/chess/matchmaking/join/", {
+            time_control: preset.time,
+            increment: preset.inc,
           });
           if (res.data.status === "matched" && res.data.room_id) {
             stopPolling();
