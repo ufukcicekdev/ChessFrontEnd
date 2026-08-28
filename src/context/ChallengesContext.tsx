@@ -45,6 +45,10 @@ export function ChallengesProvider({ children }: { children: React.ReactNode }) 
   const [sent, setSent] = useState<SentChallenge[]>([]);
   const router = useRouter();
   const seenRef = useRef<Set<string>>(new Set());
+  // Challenges we've already reacted to a terminal status for (leaving the
+  // room on decline/expire). Separate from seenRef so the feedback card can
+  // still show once.
+  const leftRoomRef = useRef<Set<string>>(new Set());
 
   const poll = useCallback(async () => {
     if (!token) return;
@@ -55,7 +59,7 @@ export function ChallengesProvider({ children }: { children: React.ReactNode }) 
       ]);
       setReceived(pendingRes.data);
       const sentData: SentChallenge[] = sentRes.data;
-      setSent((prev) => {
+      setSent(() => {
         sentData.forEach((c) => {
           if (c.status === "accepted" && c.room_id && !seenRef.current.has(c.id)) {
             seenRef.current.add(c.id);
@@ -67,8 +71,22 @@ export function ChallengesProvider({ children }: { children: React.ReactNode }) 
               router.push(target);
             }
           }
+          // A rematch initiator waits inside the new room; if the opponent
+          // declines / it expires, they'll never join — leave the empty room.
+          if (
+            (c.status === "declined" || c.status === "expired") &&
+            c.room_id &&
+            !leftRoomRef.current.has(c.id)
+          ) {
+            leftRoomRef.current.add(c.id);
+            if (typeof window !== "undefined" && window.location.pathname === `/room/${c.room_id}`) {
+              router.push("/play");
+            }
+          }
         });
-        return sentData;
+        // Hide challenges the user already dismissed / navigated away from, so a
+        // declined/expired card can't keep reappearing on every poll.
+        return sentData.filter((c) => !seenRef.current.has(c.id));
       });
     } catch {
       // silently ignore
