@@ -18,6 +18,7 @@ export interface ChessWSState {
   isCheck: boolean;
   gameResult: GameResult | null;
   gameOverReason: string | null;
+  gameId: string | null;
   whitePlayer: string | null;
   blackPlayer: string | null;
   whiteRating: number | null;
@@ -65,6 +66,7 @@ export function useChessWebSocket(
     isCheck: false,
     gameResult: null,
     gameOverReason: null,
+    gameId: null,
     whitePlayer: null,
     blackPlayer: null,
     whiteRating: null,
@@ -176,6 +178,7 @@ export function useChessWebSocket(
           whiteTime,
           blackTime,
           isCheck: Boolean(m.is_check),
+          gameId: (m as { game_id?: string }).game_id ?? s.gameId,
           gameResult: m.is_game_over ? (m.game_result ?? null) : null,
           whitePlayer: m.white_player ?? s.whitePlayer,
           blackPlayer: m.black_player ?? s.blackPlayer,

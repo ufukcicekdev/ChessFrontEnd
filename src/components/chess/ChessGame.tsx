@@ -644,7 +644,7 @@ export default function ChessGame({
           whiteRatingBefore={ws.whiteRating}
           blackRatingBefore={ws.blackRating}
           roomId={roomId}
-          gameId={gameId}
+          gameId={gameId ?? ws.gameId}
           isSpectator={isSpectator}
           timeControl={timeControl}
           increment={increment}
