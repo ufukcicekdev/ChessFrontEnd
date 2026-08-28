@@ -486,18 +486,30 @@ export default function ChessGame({
 
   const boardOrientation = effectiveColor === "black" ? "black" : "white";
 
+  // Orient the name/clock bars to match the board: the current player is always
+  // at the bottom, their opponent at the top. (Spectators keep white at bottom.)
+  const whiteInfo = {
+    username: ws.whitePlayer ?? "Waiting…",
+    title: ws.whiteTitle,
+    rating: ws.whiteRating,
+    time: formatTime(whiteTime),
+    isActive: activeSide === "white",
+  };
+  const blackInfo = {
+    username: ws.blackPlayer ?? "Waiting…",
+    title: ws.blackTitle,
+    rating: ws.blackRating,
+    time: formatTime(blackTime),
+    isActive: activeSide === "black",
+  };
+  const bottomInfo = effectiveColor === "black" ? blackInfo : whiteInfo;
+  const topInfo = effectiveColor === "black" ? whiteInfo : blackInfo;
+
   return (
     <div className="flex flex-col lg:flex-row gap-4 w-full max-w-5xl mx-auto p-4">
       {/* Board column */}
       <div className="flex flex-col gap-2 flex-1">
-        <PlayerCard
-          username={ws.blackPlayer ?? "Waiting…"}
-          title={ws.blackTitle}
-          rating={ws.blackRating}
-          time={formatTime(blackTime)}
-          isActive={activeSide === "black"}
-          isTop
-        />
+        <PlayerCard {...topInfo} isTop />
 
         <div className="relative">
           <Chessboard
@@ -525,13 +537,7 @@ export default function ChessGame({
 
         </div>
 
-        <PlayerCard
-          username={ws.whitePlayer ?? "Waiting…"}
-          title={ws.whiteTitle}
-          rating={ws.whiteRating}
-          time={formatTime(whiteTime)}
-          isActive={activeSide === "white"}
-        />
+        <PlayerCard {...bottomInfo} />
 
         {/* Resign / Draw — mobile only (below board) */}
         {!isSpectator && !ws.gameResult && (
