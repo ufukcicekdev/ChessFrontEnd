@@ -485,6 +485,9 @@ export default function ChessGame({
 
 
   const boardOrientation = effectiveColor === "black" ? "black" : "white";
+  // Disable actions while the socket is down — otherwise a click (e.g. resign)
+  // is silently dropped and the player thinks it went through.
+  const connected = ws.connectionStatus === "connected";
 
   // Orient the name/clock bars to match the board: the current player is always
   // at the bottom, their opponent at the top. (Spectators keep white at bottom.)
@@ -542,10 +545,10 @@ export default function ChessGame({
         {/* Resign / Draw — mobile only (below board) */}
         {!isSpectator && !ws.gameResult && (
           <div className="flex gap-2 lg:hidden">
-            <button onClick={() => setConfirmResign(true)} className="btn-danger flex-1 text-sm">
+            <button onClick={() => setConfirmResign(true)} disabled={!connected} className="btn-danger flex-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
               Resign
             </button>
-            <button onClick={ws.offerDraw} className="btn-secondary flex-1 text-sm">
+            <button onClick={ws.offerDraw} disabled={!connected} className="btn-secondary flex-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
               Draw
             </button>
           </div>
@@ -590,10 +593,10 @@ export default function ChessGame({
         {/* Resign / Draw — desktop only (sidebar) */}
         {!isSpectator && !ws.gameResult && (
           <div className="hidden lg:flex gap-2">
-            <button onClick={() => setConfirmResign(true)} className="btn-danger flex-1 text-sm">
+            <button onClick={() => setConfirmResign(true)} disabled={!connected} className="btn-danger flex-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
               Resign
             </button>
-            <button onClick={ws.offerDraw} className="btn-secondary flex-1 text-sm">
+            <button onClick={ws.offerDraw} disabled={!connected} className="btn-secondary flex-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed">
               Draw
             </button>
           </div>
