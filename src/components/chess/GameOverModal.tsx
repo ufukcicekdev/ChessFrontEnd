@@ -42,6 +42,24 @@ export default function GameOverModal({
     setRematching(true);
     try {
       const opponent = currentUsername === whitePlayer ? blackPlayer : whitePlayer;
+      // If the opponent already sent us a rematch challenge, accept theirs
+      // instead of opening a second room — otherwise both players click
+      // "Rematch" and end up in two different rooms.
+      if (opponent) {
+        try {
+          const { data: pending } = await api.get("/api/chess/challenges/pending/");
+          const theirs = (pending as { id: string; challenger: string }[]).find(
+            (c) => c.challenger === opponent
+          );
+          if (theirs) {
+            const { data: acc } = await api.post(`/api/chess/challenges/${theirs.id}/accept/`);
+            router.push(`/room/${acc.room_id}`);
+            return;
+          }
+        } catch {
+          // fall through to creating our own room
+        }
+      }
       const { data } = await api.post("/api/chess/rooms/", {
         name: `Rematch`,
         is_public: false,

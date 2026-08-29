@@ -73,15 +73,22 @@ export function ChallengesProvider({ children }: { children: React.ReactNode }) 
           }
           // A rematch initiator waits inside the new room; if the opponent
           // declines / it expires, they'll never join — leave the empty room.
+          // Then suppress the card entirely (adding to seenRef): a terminal
+          // "declined/expired" status is not worth a persistent, re-appearing
+          // notification — the room-leave IS the feedback.
           if (
             (c.status === "declined" || c.status === "expired") &&
-            c.room_id &&
             !leftRoomRef.current.has(c.id)
           ) {
             leftRoomRef.current.add(c.id);
-            if (typeof window !== "undefined" && window.location.pathname === `/room/${c.room_id}`) {
+            if (
+              c.room_id &&
+              typeof window !== "undefined" &&
+              window.location.pathname === `/room/${c.room_id}`
+            ) {
               router.push("/play");
             }
+            seenRef.current.add(c.id);
           }
         });
         // Hide challenges the user already dismissed / navigated away from, so a
