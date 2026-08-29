@@ -24,6 +24,9 @@ interface ChessGameProps {
   currentUsername: string | null;
   timeControl?: number;
   increment?: number;
+  // Reports the live-resolved role (from the WS) so the page header isn't stuck
+  // on a stale REST value (e.g. "spectator" in a freshly created rematch room).
+  onColorResolved?: (color: GameColor | "spectator") => void;
 }
 
 // Returns all squares a piece can physically reach for premove highlighting
@@ -107,6 +110,7 @@ export default function ChessGame({
   currentUsername,
   timeControl,
   increment,
+  onColorResolved,
 }: ChessGameProps) {
   const ws = useChessWebSocket(roomId, token);
   const { enabled: soundEnabled, toggle: toggleSound } = useSoundSetting();
@@ -137,6 +141,10 @@ export default function ChessGame({
   }, [currentUsername, playerColor, ws.whitePlayer, ws.blackPlayer]);
 
   const isSpectator = effectiveColor === "spectator";
+
+  useEffect(() => {
+    onColorResolved?.(effectiveColor);
+  }, [effectiveColor, onColorResolved]);
 
   // Optimistic FEN: set immediately on our move, cleared when server confirms
   const [optimisticFen, setOptimisticFen] = useState<string | null>(null);

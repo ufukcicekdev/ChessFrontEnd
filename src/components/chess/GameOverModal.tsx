@@ -42,6 +42,9 @@ export default function GameOverModal({
     setRematching(true);
     try {
       const opponent = currentUsername === whitePlayer ? blackPlayer : whitePlayer;
+      // Colour swap: whoever I was last game, I take the other colour now.
+      const myColor = currentUsername === whitePlayer ? "white" : "black";
+      const swappedColor = myColor === "white" ? "black" : "white";
       // If the opponent already sent us a rematch challenge, accept theirs
       // instead of opening a second room — otherwise both players click
       // "Rematch" and end up in two different rooms.
@@ -69,13 +72,14 @@ export default function GameOverModal({
       if (opponent) {
         // Best-effort invite. We enter the new room immediately and wait for
         // the opponent there — reliable regardless of notification delivery.
-        // Colors are decided by join order and the backend won't re-assign
-        // once someone has joined, so the board never resets or flips.
+        // challenger_color is our swapped colour; the backend pre-seats us in
+        // it so the board never resets or flips and the colours truly swap.
         await api.post("/api/chess/challenges/", {
           username: opponent,
           time_control: timeControl,
           increment: increment ?? 0,
           room_id: data.id,
+          challenger_color: swappedColor,
         }).catch(() => {});
       }
       // navigate — component unmounts
