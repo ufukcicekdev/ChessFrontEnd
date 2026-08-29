@@ -73,9 +73,16 @@ export default function PlayPage() {
     }
   };
 
+  // Stops the re-join poll only. The countdown (searchTimer) must keep running
+  // while we're still searching, so it lives in stopSearch instead.
   const stopPolling = () => {
     if (pollTimer.current) clearInterval(pollTimer.current);
     pollTimer.current = null;
+  };
+
+  // Fully end the search: stop polling AND the countdown.
+  const stopSearch = () => {
+    stopPolling();
     if (searchTimer.current) clearInterval(searchTimer.current);
     searchTimer.current = null;
   };
@@ -93,10 +100,11 @@ export default function PlayPage() {
         increment: preset.inc,
       });
       if (data.status === "matched" && data.room_id) {
-        stopPolling();
+        stopSearch();
         router.push(`/room/${data.room_id}`);
         return;
       }
+      // Cycle the poll but keep the countdown ticking.
       stopPolling();
       pollTimer.current = setInterval(async () => {
         try {
@@ -108,7 +116,7 @@ export default function PlayPage() {
             increment: preset.inc,
           });
           if (res.data.status === "matched" && res.data.room_id) {
-            stopPolling();
+            stopSearch();
             router.push(`/room/${res.data.room_id}`);
           }
         } catch {
@@ -123,7 +131,7 @@ export default function PlayPage() {
 
   const cancelMatchmaking = async () => {
     const preset = TIME_PRESETS[selected];
-    stopPolling();
+    stopSearch();
     setSearching(false);
     try {
       await api.post("/api/chess/matchmaking/leave/", {
@@ -141,7 +149,7 @@ export default function PlayPage() {
   };
 
   useEffect(() => {
-    return () => stopPolling();
+    return () => stopSearch();
   }, []);
 
   return (
