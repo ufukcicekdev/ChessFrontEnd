@@ -2,65 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Chessboard } from "react-chessboard";
-import { Chess, Move, Square } from "chess.js";
+import { Chess, Square } from "chess.js";
 import { clsx } from "clsx";
 import { useChessSound } from "@/hooks/useChessSound";
 import { useSoundSetting } from "@/hooks/useSoundSetting";
-
-type Difficulty = "easy" | "medium" | "hard";
-
-const PIECE_VALUES: Record<string, number> = {
-  p: 1,
-  n: 3,
-  b: 3,
-  r: 5,
-  q: 9,
-  k: 0,
-};
-
-function scoreMove(game: Chess, move: Move): number {
-  let score = 0;
-
-  if (move.captured) {
-    score += 6 + (PIECE_VALUES[move.captured] ?? 0);
-  }
-
-  // Cheap positional bonuses
-  if (move.san.includes("#")) score += 200;
-  if (move.san.includes("+")) score += 8;
-
-  // Encourage development in opening-ish positions
-  if (game.history().length < 10) {
-    const developed = ["b", "n"].includes(move.piece);
-    if (developed) score += 2;
-  }
-
-  return score;
-}
-
-function pickEngineMove(game: Chess, difficulty: Difficulty): Move {
-  const moves = game.moves({ verbose: true });
-  if (moves.length === 0) {
-    throw new Error("No legal moves");
-  }
-
-  const scored = moves.map((m) => ({ m, s: scoreMove(game, m) }));
-  scored.sort((a, b) => a.s - b.s);
-
-  if (difficulty === "easy") {
-    // Mostly weak moves, occasional decent one.
-    const pool = scored.slice(0, Math.max(4, Math.floor(scored.length * 0.65)));
-    return pool[Math.floor(Math.random() * pool.length)]!.m;
-  }
-
-  if (difficulty === "medium") {
-    return moves[Math.floor(Math.random() * moves.length)]!;
-  }
-
-  // hard: biased toward better-scoring moves, but still lightweight (not a real engine)
-  const top = scored.slice(-Math.min(6, scored.length));
-  return top[Math.floor(Math.random() * top.length)]!.m;
-}
+import { pickEngineMove, type Difficulty } from "@/lib/trainingEngine";
 
 export default function TrainPage() {
   const { enabled: soundEnabled, toggle: toggleSound } = useSoundSetting();
@@ -319,9 +265,9 @@ export default function TrainPage() {
           <div className="card flex flex-col gap-3">
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Notes</p>
             <ul className="text-sm text-gray-400 leading-relaxed list-disc pl-5 space-y-2">
-              <li>Lightweight heuristic bot — not Stockfish.</li>
+              <li>Built-in engine with alpha-beta search (no external servers).</li>
               <li>Choose White or Black; engine plays the other side.</li>
-              <li>Hard is stronger than Easy but still beatable.</li>
+              <li>Easy blunders often; Medium plays soundly; Hard searches deeper.</li>
             </ul>
           </div>
         </div>
