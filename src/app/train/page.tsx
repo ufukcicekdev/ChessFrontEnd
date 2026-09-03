@@ -45,7 +45,9 @@ export default function TrainPage() {
           setStatus(eg.isGameOver() ? "Game over" : "Your move");
         } catch { setStatus("Engine failed to move"); }
         finally { setBusy(false); }
-      }, 250);
+        // Delay kept longer than the 200ms board animation so the player's
+        // capture finishes rendering before the engine's reply updates the board.
+      }, 300);
     },
     [play],
   );
@@ -83,6 +85,29 @@ export default function TrainPage() {
     },
     [game],
   );
+
+  // Highlight the last move's from/to squares so it's clear what just happened
+  // (especially the engine's reply).
+  const lastMoveHighlight = useMemo(() => {
+    const history = game.history({ verbose: true });
+    const last = history[history.length - 1];
+    if (!last) return {} as Record<string, object>;
+    return {
+      [last.from]: { background: "rgba(205,210,106,0.5)" },
+      [last.to]: { background: "rgba(205,210,106,0.5)" },
+    };
+  }, [game]);
+
+  // Highlight the king in red whenever the side to move is in check.
+  const checkHighlight = useMemo(() => {
+    if (!game.inCheck()) return {} as Record<string, object>;
+    const turn = game.turn();
+    const kingSquare = game
+      .board()
+      .flatMap((row, r) => row.map((piece, f) => ({ piece, square: `${"abcdefgh"[f]}${8 - r}` })))
+      .find(({ piece }) => piece?.type === "k" && piece?.color === turn)?.square;
+    return kingSquare ? { [kingSquare]: { background: "rgba(239,68,68,0.55)" } } : {};
+  }, [game]);
 
   const commitTrainMove = useCallback(
     (from: Square, to: Square, promo: "q" | "r" | "b" | "n" = "q") => {
@@ -244,7 +269,8 @@ export default function TrainPage() {
                 onSquareClick={onSquareClick}
                 boardOrientation={orientation}
                 arePiecesDraggable={canMove}
-                customSquareStyles={optionSquares}
+                animationDuration={200}
+                customSquareStyles={{ ...lastMoveHighlight, ...checkHighlight, ...optionSquares }}
                 customDarkSquareStyle={{ backgroundColor: "#b58863" }}
                 customLightSquareStyle={{ backgroundColor: "#f0d9b5" }}
                 showPromotionDialog={!!promotionTo}
